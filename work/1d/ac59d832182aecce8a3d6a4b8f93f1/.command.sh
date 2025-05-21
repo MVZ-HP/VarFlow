@@ -1,2 +1,0 @@
-#!/bin/bash -ue
-python3 /app/scripts/ngs_dna_align.py       -1 /mnt/d/GitHub/VarFlow/data/HS-25-001_DNA_85423_S14_R1_001.1M.fastq.gz,/mnt/d/GitHub/VarFlow/data/HS-25-002_DNA_85424_S12_R1_001.1M.fastq.gz,/mnt/d/GitHub/VarFlow/data/HS-25-003_DNA_85425_S13_R1_001.1M.fastq.gz       -2 /mnt/d/GitHub/VarFlow/data/HS-25-001_DNA_85423_S14_R2_001.1M.fastq.gz,/mnt/d/GitHub/VarFlow/data/HS-25-002_DNA_85424_S12_R2_001.1M.fastq.gz,/mnt/d/GitHub/VarFlow/data/HS-25-003_DNA_85425_S13_R2_001.1M.fastq.gz       -a hg38       -m umi       -r WES_25_A01_hg38       -c 16       -o results
