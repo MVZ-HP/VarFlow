@@ -10,25 +10,20 @@ process ngs_dna_align {
   publishDir "${params.out_dir}", mode: 'copy', overwrite: true
 
   input:
-    // tuple(sample_list, fastqs) from read_ch
-    tuple val(sample_list), path(fastqs)
+    path reads_dir   // a directory containing all R1/R2 FASTQs
 
   output:
-    path "ngs_dna_align.${params.run_id}.${params.date}"
+    path "ngs_dna_align.${params.run_id}"
 
   script:
-    // Inside $PWD we now have *all* FASTQs by basename
-    def r1s = sample_list.collect{ it.r1.name }.join(',')
-    def r2s = sample_list.collect{ it.r2.name }.join(',')
-
     """
     python3 /app/scripts/ngs_dna_align.py \
-      -1 ${r1s} \
-      -2 ${r2s} \
+      -f ${reads_dir} \
       -a ${params.assembly} \
       -m ${params.dedup_mode} \
       -r ${params.run_id} \
       -c ${task.cpus} \
+      --no_date \
       -o \$PWD
     """
 }

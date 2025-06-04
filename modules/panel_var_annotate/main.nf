@@ -13,7 +13,7 @@ process panel_var_annotate {
     path snv_dir
 
   output:
-    path "panel_var_annotate.${params.run_id}.${params.date}"
+    path "panel_var_annotate.${params.run_id}"
 
   script:
     """
@@ -26,6 +26,7 @@ process panel_var_annotate {
       -r ${params.minvad} \
       -d /vep \
       -c ${task.cpus} \
+      --no_date \
       -o \$PWD
     """
 }

@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 
 process panel_cov_qc {
   tag "${params.run_id}"
-  container 'ghcr.io/mvz-hp/panel_cov_qc:1.0.8'
+  container 'ghcr.io/mvz-hp/panel_cov_qc:1.0.9'
   containerOptions '--entrypoint ""'
   cpus  params.cpus
 
@@ -13,7 +13,7 @@ process panel_cov_qc {
     path align_dir
 
   output:
-    path "panel_cov_qc.${params.run_id}.${params.date}"
+    path "panel_cov_qc.${params.run_id}"
 
   script:
     """
@@ -23,6 +23,7 @@ process panel_cov_qc {
       -a ${params.assembly} \
       -m ${params.mincov} \
       -c ${task.cpus} \
+      --no_date \
       -o \$PWD
     """
 }

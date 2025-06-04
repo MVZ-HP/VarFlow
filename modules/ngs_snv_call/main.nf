@@ -13,7 +13,7 @@ process ngs_snv_call {
     path align_dir
 
   output:
-    path "ngs_snv_call.${params.run_id}.${params.date}"
+    path "ngs_snv_call.${params.run_id}"
 
   script:
     """
@@ -22,6 +22,7 @@ process ngs_snv_call {
       -a ${params.assembly} \
       -p ${params.panel} \
       -c ${task.cpus} \
+      --no_date \
       -o \$PWD
     """
 }

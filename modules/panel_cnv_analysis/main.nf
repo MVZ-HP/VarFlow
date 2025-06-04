@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 
 process panel_cnv_analysis {
   tag "${params.run_id}"
-  container 'ghcr.io/mvz-hp/panel_cnv_analysis:1.0.6'
+  container 'ghcr.io/mvz-hp/panel_cnv_analysis:1.0.7'
   containerOptions '--entrypoint ""'
   cpus  params.cpus
 
@@ -13,7 +13,7 @@ process panel_cnv_analysis {
     path align_dir
 
   output:
-    path "panel_cnv_analysis.${params.run_id}.${params.date}"
+    path "panel_cnv_analysis.${params.run_id}"
 
   script:
     """
@@ -23,6 +23,7 @@ process panel_cnv_analysis {
       -a ${params.assembly} \
       -w \
       -c ${task.cpus} \
+      --no_date \
       -o \$PWD
     """
 }
