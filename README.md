@@ -1,4 +1,3 @@
-````markdown
 # VarFlow
 
 **VarFlow** is a modular Nextflow (DSL2) pipeline for DNA-seq variant analysis (alignment, coverage QC, CNV analysis, SNV calling, annotation). Each step runs in a Docker container for reproducibility.
