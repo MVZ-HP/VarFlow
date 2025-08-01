@@ -16,11 +16,19 @@ process ngs_dna_align {
     path "ngs_dna_align.${params.run_id}"
 
   script:
+    // Set dedup_mode according to the mode
+    def dedup_mode
+    if (params.mode == 'wes') {
+      dedup_mode = 'umi'
+    } else if (params.mode == 'amplicon') {
+      dedup_mode = 'none'
+    }
+
     """
     python3 /app/scripts/ngs_dna_align.py \
       -f ${reads_dir} \
       -a ${params.assembly} \
-      -m ${params.dedup_mode} \
+      -m ${dedup_mode} \
       -r ${params.run_id} \
       -c ${task.cpus} \
       --no_date \

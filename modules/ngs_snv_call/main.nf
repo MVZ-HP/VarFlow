@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 
 process ngs_snv_call {
   tag "${params.run_id}"
-  container 'ghcr.io/mvz-hp/ngs_snv_call:1.0.0'
+  container 'ghcr.io/mvz-hp/ngs_snv_call:1.0.1'
   containerOptions '--entrypoint ""'
   cpus  params.cpus
 
@@ -22,6 +22,7 @@ process ngs_snv_call {
       -a ${params.assembly} \
       -p ${params.panel} \
       -c ${task.cpus} \
+      --run_id ${params.run_id} \
       --no_date \
       -o \$PWD
     """

@@ -16,13 +16,22 @@ process panel_cnv_analysis {
     path "panel_cnv_analysis.${params.run_id}"
 
   script:
+    // Set default params if not provided
+    def method
+    if (params.mode == 'wes') {
+      method = 'hybrid_capture'
+    } else if (params.mode == 'amplicon') {
+      method = 'amplicon'
+    }
+
     """
     python3 /app/scripts/panel_cnv_analysis.py \
       -t ${align_dir} \
-      -p ${params.panel} \
       -a ${params.assembly} \
-      -w \
+      -p ${params.panel} \
+      -m ${method} \
       -c ${task.cpus} \
+      --run_id ${params.run_id} \
       --no_date \
       -o \$PWD
     """

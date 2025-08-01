@@ -16,16 +16,31 @@ process panel_var_annotate {
     path "panel_var_annotate.${params.run_id}"
 
   script:
+    // Set default params if not provided
+    def mincov
+    def minvaf
+    def minvad
+    if (params.mode == 'wes') {
+      mincov = params.mincov ?: 200
+      minvaf = params.minvaf ?: 1.0
+      minvad = params.minvad ?: 10
+    } else if (params.mode == 'amplicon') {
+      mincov = params.mincov ?: 400
+      minvaf = params.minvaf ?: 1.5
+      minvad = params.minvad ?: 0
+    }
+
     """
     python3 /app/scripts/panel_var_annotate.py \
       -i ${snv_dir} \
-      -p ${params.panel} \
       -a ${params.assembly} \
-      -m ${params.mincov} \
-      -f ${params.minvaf} \
-      -r ${params.minvad} \
+      -p ${params.panel} \
+      -m ${mincov} \
+      -f ${minvaf} \
+      -r ${minvad} \
       -d /vep \
       -c ${task.cpus} \
+      --run_id ${params.run_id} \
       --no_date \
       -o \$PWD
     """
