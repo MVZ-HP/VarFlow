@@ -17,6 +17,10 @@ workflow {
 
     A Nextflow-DSL2 pipeline for DNA-seq alignment, QC, CNV, SNV calling, and annotation.
 
+    Usage example WES (on default hg38):
+      nextflow run mvz-hp/VarFlow -r v1.0.0 --mode wes --panel wes_panel \\
+      --reads_dir FASTQ_folder --run_id WES_run_1 --cpus 16 && nextflow clean -f
+
     Usage:
       nextflow run mvz-hp/VarFlow -r v1.0.0 \\
         --mode        <wes|amplicon> \\
