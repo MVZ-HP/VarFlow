@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 
 process panel_cnv_analysis {
   tag "${params.run_id}"
-  container 'ghcr.io/mvz-hp/panel_cnv_analysis:1.0.7'
+  container 'ghcr.io/mvz-hp/panel_cnv_analysis:1.0.8'
   containerOptions '--entrypoint ""'
   cpus  params.cpus
 
