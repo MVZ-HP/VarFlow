@@ -2,34 +2,28 @@
 nextflow.enable.dsl = 2
 
 process ngs_dna_align {
-  tag "${params.run_id}"
+  tag "${run_id}"
   container 'ghcr.io/mvz-hp/ngs_dna_align:1.0.0'
   containerOptions '--entrypoint ""'
-  cpus  params.cpus
+  cpus params.cpus
 
-  publishDir "${params.out_dir}", mode: 'copy', overwrite: true
+  publishDir "varflow.${run_id}.${params.date}", mode: 'copy', overwrite: true
 
   input:
-    path reads_dir   // a directory containing all R1/R2 FASTQs
+    tuple path(reads_dir), val(run_id)
 
   output:
-    path "ngs_dna_align.${params.run_id}"
+    // Keep run_id in the path name for clarity
+    tuple path("ngs_dna_align.${run_id}"), val(run_id)
 
   script:
-    // Set dedup_mode according to the mode
-    def dedup_mode
-    if (params.mode == 'wes') {
-      dedup_mode = 'umi'
-    } else if (params.mode == 'amplicon') {
-      dedup_mode = 'none'
-    }
-
+    def dedup_mode = (params.mode == 'wes') ? 'umi' : 'none'
     """
     python3 /app/scripts/ngs_dna_align.py \
       -f ${reads_dir} \
       -a ${params.assembly} \
       -m ${dedup_mode} \
-      -r ${params.run_id} \
+      -r ${run_id} \
       -c ${task.cpus} \
       --no_date \
       -o \$PWD

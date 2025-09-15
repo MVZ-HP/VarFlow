@@ -8,21 +8,22 @@ include { panel_cnv_analysis       } from './modules/panel_cnv_analysis/main.nf'
 include { panel_var_annotate       } from './modules/panel_var_annotate/main.nf'
 include { panel_var_annotate_indel } from './modules/panel_var_annotate_indel/main.nf'
 include { panel_indel_call         } from './modules/panel_indel_call/main.nf'
+include { infer_run_id             } from './modules/infer_run_id/main.nf'
 
 workflow {
   // Help message
   if( params.help ) {
     println '''
-    VarFlow v1.0.0
+    VarFlow v1.0.1
 
     A Nextflow-DSL2 pipeline for DNA-seq alignment, QC, CNV, SNV calling, and annotation.
 
     Usage example WES (on default hg38):
-      nextflow run mvz-hp/VarFlow -r v1.0.0 --mode wes --panel wes_panel \\
+      nextflow run mvz-hp/VarFlow -r v1.0.1 --mode wes --panel wes_panel \\
       --reads_dir FASTQ_folder --run_id WES_run_1 --cpus 16 && nextflow clean -f
 
     Usage:
-      nextflow run mvz-hp/VarFlow -r v1.0.0 \\
+      nextflow run mvz-hp/VarFlow -r v1.0.1 \\
         --mode        <wes|amplicon> \\
         --panel       <panel_name> \\
         --reads_dir   </path/to/fastq_folder> \\
@@ -99,66 +100,78 @@ workflow {
     }
   }
 
-  // Set up the output directory
-  def outDir = file(params.out_dir)
-  if( !outDir.exists() ) {
-    outDir.mkdirs()
+    // Figure out which input dir is in use
+  def chosen_dir = params.reads_dir ?: params.bams_dir ?: params.vcfs_dir ?: params.bam_vcf_dir
+  if( !chosen_dir ) {
+    error "You must specify exactly one of --reads_dir, --bams_dir, --vcfs_dir, or --bam_vcf_dir."
+  }
+  def chosenFolder = file(chosen_dir)
+  if( !chosenFolder.exists() ) {
+    error "The chosen input folder does not exist: ${chosenFolder}"
   }
 
-  // Wire the processes together according to the input parameters
+  // Build a single-path channel for infer_run_id
+  input_dir_ch = Channel.value( chosenFolder )
+
+  // Infer run_id (explicit -> SampleSheet -> default)
+  runid_file_ch = infer_run_id(
+      input_dir_ch,
+      params.run_id ?: '',
+      params.run_id_def,
+      (params.samplesheet == null ? true : params.samplesheet).toString()
+  )
+
+  // Turn file into a value channel (trim newline)
+  run_id_ch = runid_file_ch.map { f -> f.text.trim() }
+
+  // Prepare channels for the four entry modes
   if( params.reads_dir ) {
-    // Input folder containing FASTQ files
-    reads_ch = Channel.value( file(params.reads_dir) )
-    // Folder containing Bam files after alignment
-    align_ch = ngs_dna_align(reads_ch)
-    // Folder containing VCF files after SNV calling
-    snv_ch = ngs_snv_call(align_ch)
-    // Perform coverage QC, CNV analysis, and variant annotation
-    panel_cov_qc(align_ch)
-    panel_cnv_analysis(align_ch)
-    panel_var_annotate(snv_ch)
-    // If the mode is amplicon, also call and annotate indels
-    if( params.mode == 'amplicon' ) {
-      indel_ch = panel_indel_call(align_ch)
-      panel_var_annotate_indel(indel_ch)
-    }
-  }
-  // Input folder containing BAM files
-  else if( params.bams_dir ) {
-    // Input folder containing Bam files
-    align_ch = Channel.value( file(params.bams_dir) )
+    reads_ch = Channel.value( chosenFolder )
+    // Pair each input with the single run_id value
+    reads_plus_id_ch = reads_ch.combine(run_id_ch)
+
+    // Align
+    align_ch = ngs_dna_align(reads_plus_id_ch)
     // Call SNVs
-    snv_ch = ngs_snv_call(align_ch)
-    // Perform coverage QC, CNV analysis, and variant annotation
+    snv_ch   = ngs_snv_call(align_ch)
+    // QC+CNV+Annot
     panel_cov_qc(align_ch)
     panel_cnv_analysis(align_ch)
     panel_var_annotate(snv_ch)
-    // If the mode is amplicon, also call and annotate indels
+    // Indels only in amplicon mode
     if( params.mode == 'amplicon' ) {
       indel_ch = panel_indel_call(align_ch)
       panel_var_annotate_indel(indel_ch)
     }
   }
-  // Input folder containing VCF files
-  else if( params.vcfs_dir ) {
-    // Input folder containing VCF files
-    snv_ch = Channel.value( file(params.vcfs_dir) )
-    // Annotate the VCF files
+  else if( params.bams_dir ) {
+    bams_ch = Channel.value( chosenFolder )
+    bams_plus_id_ch = bams_ch.combine(run_id_ch)
+
+    snv_ch   = ngs_snv_call(bams_plus_id_ch)
+    panel_cov_qc(bams_plus_id_ch)
+    panel_cnv_analysis(bams_plus_id_ch)
     panel_var_annotate(snv_ch)
-  }
-  // Input folder containing both BAMs and VCFs
-  else if( params.bam_vcf_dir ) {
-    // Input folder containing Bam files
-    align_ch = Channel.value( file(params.bam_vcf_dir) )
-    // Input folder containing VCF files
-    snv_ch = Channel.value( file(params.bam_vcf_dir) )
-    // Perform coverage QC, CNV analysis, and variant annotation
-    panel_cov_qc(align_ch)
-    panel_cnv_analysis(align_ch)
-    panel_var_annotate(snv_ch)
-    // If the mode is amplicon, also call and annotate indels
     if( params.mode == 'amplicon' ) {
-      indel_ch = panel_indel_call(align_ch)
+      indel_ch = panel_indel_call(bams_plus_id_ch)
+      panel_var_annotate_indel(indel_ch)
+    }
+  }
+  else if( params.vcfs_dir ) {
+    vcfs_ch = Channel.value( chosenFolder )
+    vcfs_plus_id_ch = vcfs_ch.combine(run_id_ch)
+
+    panel_var_annotate(vcfs_plus_id_ch)
+  }
+  else if( params.bam_vcf_dir ) {
+    both_ch = Channel.value( chosenFolder )
+    both_plus_id_ch = both_ch.combine(run_id_ch)
+
+    panel_cov_qc(both_plus_id_ch)
+    panel_cnv_analysis(both_plus_id_ch)
+    panel_var_annotate(both_plus_id_ch)
+    if( params.mode == 'amplicon' ) {
+      indel_ch = panel_indel_call(both_plus_id_ch)
       panel_var_annotate_indel(indel_ch)
     }
   }

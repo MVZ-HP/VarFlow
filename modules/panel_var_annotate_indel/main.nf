@@ -2,26 +2,25 @@
 nextflow.enable.dsl = 2
 
 process panel_var_annotate_indel {
-  tag "${params.run_id}"
-  container 'ghcr.io/mvz-hp/panel_var_annotate:1.0.3'
+  tag "${run_id}"
+  container 'ghcr.io/mvz-hp/panel_var_annotate:1.0.4'
   containerOptions "--entrypoint \"\" --volume ${params.vep_cache}:/vep"
-  cpus  params.cpus
+  cpus params.cpus
 
-  publishDir "${params.out_dir}", mode: 'copy', overwrite: true
+  publishDir "varflow.${run_id}.${params.date}", mode: 'copy', overwrite: true
 
   input:
-    path snv_dir
+    tuple path(snv_dir), val(run_id)
 
   output:
-    path "panel_var_annotate.indel.${params.run_id}"
+    // Keep run_id in the path name for clarity
+    tuple path("panel_var_annotate.indel.${run_id}"), val(run_id)
 
   script:
     // Set default params if not provided
     def mincov = params.mincov ?: 400
     def minvaf = params.minvaf ?: 1.5
     def minvad = params.minvad ?: 0
-    // Add -indel to the run id
-    def run_id = "indel.${params.run_id}"
 
     """
     python3 /app/scripts/panel_var_annotate.py \
@@ -33,7 +32,7 @@ process panel_var_annotate_indel {
       -r ${minvad} \
       -d /vep \
       -c ${task.cpus} \
-      --run_id ${run_id} \
+      --run_id indel.${run_id} \
       --no_date \
       -o \$PWD
     """

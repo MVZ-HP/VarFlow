@@ -2,18 +2,19 @@
 nextflow.enable.dsl = 2
 
 process ngs_snv_call {
-  tag "${params.run_id}"
+  tag "${run_id}"
   container 'ghcr.io/mvz-hp/ngs_snv_call:1.0.1'
   containerOptions '--entrypoint ""'
-  cpus  params.cpus
+  cpus params.cpus
 
-  publishDir "${params.out_dir}", mode: 'copy', overwrite: true
+  publishDir "varflow.${run_id}.${params.date}", mode: 'copy', overwrite: true
 
   input:
-    path align_dir
+    tuple path(align_dir), val(run_id)
 
   output:
-    path "ngs_snv_call.${params.run_id}"
+    // Keep run_id in the path name for clarity
+    tuple path("ngs_snv_call.${run_id}"), val(run_id)
 
   script:
     """
@@ -22,7 +23,7 @@ process ngs_snv_call {
       -a ${params.assembly} \
       -p ${params.panel} \
       -c ${task.cpus} \
-      --run_id ${params.run_id} \
+      --run_id ${run_id} \
       --no_date \
       -o \$PWD
     """

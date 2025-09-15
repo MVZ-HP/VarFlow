@@ -2,18 +2,19 @@
 nextflow.enable.dsl = 2
 
 process panel_cov_qc {
-  tag "${params.run_id}"
+  tag "${run_id}"
   container 'ghcr.io/mvz-hp/panel_cov_qc:1.0.10'
   containerOptions '--entrypoint ""'
-  cpus  params.cpus
+  cpus params.cpus
 
-  publishDir "${params.out_dir}", mode: 'copy', overwrite: true
+  publishDir "varflow.${run_id}.${params.date}", mode: 'copy', overwrite: true
 
   input:
-    path align_dir
+    tuple path(align_dir), val(run_id)
 
   output:
-    path "panel_cov_qc.${params.run_id}"
+    // Keep run_id in the path name for clarity
+    tuple path("panel_cov_qc.${run_id}"), val(run_id)
 
   script:
     // Set default params if not provided
@@ -31,7 +32,7 @@ process panel_cov_qc {
       -p ${params.panel} \
       -m ${mincov} \
       -c ${task.cpus} \
-      --run_id ${params.run_id} \
+      --run_id ${run_id} \
       --no_date \
       -o \$PWD
     """
