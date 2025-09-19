@@ -14,7 +14,7 @@ process ngs_dna_align {
 
   output:
     // Keep run_id in the path name for clarity
-    tuple path("ngs_dna_align.${run_id}"), val(run_id)
+    path("ngs_dna_align.${run_id}")
 
   script:
     def dedup_mode = (params.mode == 'wes') ? 'umi' : 'none'

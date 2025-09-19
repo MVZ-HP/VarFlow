@@ -129,50 +129,88 @@ workflow {
     reads_ch = Channel.value( chosenFolder )
     // Pair each input with the single run_id value
     reads_plus_id_ch = reads_ch.combine(run_id_ch)
-
     // Align
-    align_ch = ngs_dna_align(reads_plus_id_ch)
+    bam_ch = ngs_dna_align(reads_plus_id_ch)
+    bam_plus_id = bam_ch.combine(run_id_ch)
     // Call SNVs
-    snv_ch   = ngs_snv_call(align_ch)
+    snv_ch = ngs_snv_call(bam_plus_id)
+    snv_plus_id = snv_ch.combine(run_id_ch)
     // QC+CNV+Annot
-    panel_cov_qc(align_ch)
-    panel_cnv_analysis(align_ch)
-    panel_var_annotate(snv_ch)
+    cov_out = panel_cov_qc(bam_plus_id)
+    cnv_out = panel_cnv_analysis(bam_plus_id)
+    ann_out = panel_var_annotate(snv_plus_id)
+    // ----- barrier that fires *after* cov + cnv + ann are done -----
+    def barrier = Channel
+                  .empty()
+                  .mix( cov_out.map{ true } )
+                  .mix( cnv_out.map{ true } )
+                  .mix( ann_out.map{ true } )
+                  .collect()            // waits for all three tokens
+                  .map{ 'ready' }       // single value for gating
     // Indels only in amplicon mode
     if( params.mode == 'amplicon' ) {
-      indel_ch = panel_indel_call(align_ch)
-      panel_var_annotate_indel(indel_ch)
+      // Gate indel calling on the barrier
+      indel_in = bam_plus_id.combine(barrier)
+      indel_ch = panel_indel_call(indel_in)
+      indel_plus_id = indel_ch.combine(run_id_ch)
+      panel_var_annotate_indel(indel_plus_id)
     }
   }
   else if( params.bams_dir ) {
-    bams_ch = Channel.value( chosenFolder )
-    bams_plus_id_ch = bams_ch.combine(run_id_ch)
-
-    snv_ch   = ngs_snv_call(bams_plus_id_ch)
-    panel_cov_qc(bams_plus_id_ch)
-    panel_cnv_analysis(bams_plus_id_ch)
-    panel_var_annotate(snv_ch)
+    bam_ch = Channel.value( chosenFolder )
+    bam_plus_id_ch = bam_ch.combine(run_id_ch)
+    // Call SNVs
+    snv_ch = ngs_snv_call(bam_plus_id_ch)
+    snv_plus_id = snv_ch.combine(run_id_ch)
+    // QC+CNV+Annot
+    cov_out = panel_cov_qc(bam_plus_id)
+    cnv_out = panel_cnv_analysis(bam_plus_id)
+    ann_out = panel_var_annotate(snv_plus_id)
+    // ----- barrier that fires *after* cov + cnv + ann are done -----
+    def barrier = Channel
+                  .empty()
+                  .mix( cov_out.map{ true } )
+                  .mix( cnv_out.map{ true } )
+                  .mix( ann_out.map{ true } )
+                  .collect()            // waits for all three tokens
+                  .map{ 'ready' }       // single value for gating
+    // Indels only in amplicon mode
     if( params.mode == 'amplicon' ) {
-      indel_ch = panel_indel_call(bams_plus_id_ch)
-      panel_var_annotate_indel(indel_ch)
+      // Gate indel calling on the barrier
+      indel_in = bam_plus_id.combine(barrier)
+      indel_ch = panel_indel_call(indel_in)
+      indel_plus_id = indel_ch.combine(run_id_ch)
+      panel_var_annotate_indel(indel_plus_id)
     }
   }
   else if( params.vcfs_dir ) {
-    vcfs_ch = Channel.value( chosenFolder )
-    vcfs_plus_id_ch = vcfs_ch.combine(run_id_ch)
-
-    panel_var_annotate(vcfs_plus_id_ch)
+    snv_ch = Channel.value( chosenFolder )
+    snv_plus_id_ch = snv_ch.combine(run_id_ch)
+    // Annotate only
+    panel_var_annotate(snv_plus_id_ch)
   }
   else if( params.bam_vcf_dir ) {
     both_ch = Channel.value( chosenFolder )
     both_plus_id_ch = both_ch.combine(run_id_ch)
-
-    panel_cov_qc(both_plus_id_ch)
-    panel_cnv_analysis(both_plus_id_ch)
-    panel_var_annotate(both_plus_id_ch)
+    // QC+CNV+Annot
+    cov_out = panel_cov_qc(both_plus_id_ch)
+    cnv_out = panel_cnv_analysis(both_plus_id_ch)
+    ann_out = panel_var_annotate(both_plus_id_ch)
+    // ----- barrier that fires *after* cov + cnv + ann are done -----
+    def barrier = Channel
+                  .empty()
+                  .mix( cov_out.map{ true } )
+                  .mix( cnv_out.map{ true } )
+                  .mix( ann_out.map{ true } )
+                  .collect()            // waits for all three tokens
+                  .map{ 'ready' }       // single value for gating
+    // Indels only in amplicon mode
     if( params.mode == 'amplicon' ) {
-      indel_ch = panel_indel_call(both_plus_id_ch)
-      panel_var_annotate_indel(indel_ch)
+      // Gate indel calling on the barrier
+      indel_in = both_plus_id_ch.combine(barrier)
+      indel_ch = panel_indel_call(indel_in)
+      indel_plus_id = indel_ch.combine(run_id_ch)
+      panel_var_annotate_indel(indel_plus_id)
     }
   }
 }

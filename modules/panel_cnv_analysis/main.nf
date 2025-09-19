@@ -14,7 +14,7 @@ process panel_cnv_analysis {
 
   output:
     // Keep run_id in the path name for clarity
-    tuple path("panel_cnv_analysis.${run_id}"), val(run_id)
+    path("panel_cnv_analysis.${run_id}")
 
   script:
     // Set default params if not provided

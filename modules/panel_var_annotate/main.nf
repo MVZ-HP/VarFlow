@@ -14,7 +14,7 @@ process panel_var_annotate {
 
   output:
     // Keep run_id in the path name for clarity
-    tuple path("panel_var_annotate.${run_id}"), val(run_id)
+    path("panel_var_annotate.${run_id}")
 
   script:
     // Set default params if not provided

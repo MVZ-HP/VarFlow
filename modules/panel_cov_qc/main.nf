@@ -14,7 +14,7 @@ process panel_cov_qc {
 
   output:
     // Keep run_id in the path name for clarity
-    tuple path("panel_cov_qc.${run_id}"), val(run_id)
+    path("panel_cov_qc.${run_id}")
 
   script:
     // Set default params if not provided

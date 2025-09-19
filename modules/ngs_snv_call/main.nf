@@ -14,7 +14,7 @@ process ngs_snv_call {
 
   output:
     // Keep run_id in the path name for clarity
-    tuple path("ngs_snv_call.${run_id}"), val(run_id)
+    path("ngs_snv_call.${run_id}")
 
   script:
     """

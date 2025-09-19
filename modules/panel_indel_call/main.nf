@@ -10,11 +10,11 @@ process panel_indel_call {
   publishDir "varflow.${run_id}.${params.date}", mode: 'copy', overwrite: true
 
   input:
-    tuple path(align_dir), val(run_id)
+    tuple path(align_dir), val(run_id), val(_ready)  // _ready is the barrier toke
 
   output:
     // Keep run_id in the path name for clarity
-    tuple path("panel_indel_call.${run_id}"), val(run_id)
+    path("panel_indel_call.${run_id}")
 
   script:
     """
