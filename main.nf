@@ -158,9 +158,9 @@ workflow {
   }
   else if( params.bams_dir ) {
     bam_ch = Channel.value( chosenFolder )
-    bam_plus_id_ch = bam_ch.combine(run_id_ch)
+    bam_plus_id = bam_ch.combine(run_id_ch)
     // Call SNVs
-    snv_ch = ngs_snv_call(bam_plus_id_ch)
+    snv_ch = ngs_snv_call(bam_plus_id)
     snv_plus_id = snv_ch.combine(run_id_ch)
     // QC+CNV+Annot
     cov_out = panel_cov_qc(bam_plus_id)
