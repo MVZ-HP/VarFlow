@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 
 process panel_var_annotate_indel {
   tag "${run_id}"
-  container 'ghcr.io/mvz-hp/panel_var_annotate:1.0.4'
+  container 'ghcr.io/mvz-hp/panel_var_annotate:1.0.5'
   containerOptions "--entrypoint \"\" --volume ${params.vep_cache}:/vep"
   cpus params.cpus
 

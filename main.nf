@@ -14,16 +14,16 @@ workflow {
   // Help message
   if( params.help ) {
     println '''
-    VarFlow v1.0.1
+    VarFlow v1.0.2
 
     A Nextflow-DSL2 pipeline for DNA-seq alignment, QC, CNV, SNV calling, and annotation.
 
     Usage example WES (on default hg38):
-      nextflow run mvz-hp/VarFlow -r v1.0.1 --mode wes --panel wes_panel \\
+      nextflow run mvz-hp/VarFlow -r v1.0.2 --mode wes --panel wes_panel \\
       --reads_dir FASTQ_folder --run_id WES_run_1 --cpus 16 && nextflow clean -f
 
     Usage:
-      nextflow run mvz-hp/VarFlow -r v1.0.1 \\
+      nextflow run mvz-hp/VarFlow -r v1.0.2 \\
         --mode        <wes|amplicon> \\
         --panel       <panel_name> \\
         --reads_dir   </path/to/fastq_folder> \\
@@ -36,6 +36,7 @@ workflow {
         --minvaf      <min_variant_allele_frequency> \\
         --minvad      <min_variant_allele_depth> \\
         --vep_cache   <path_to_vep_cache> \\
+        --skip_indel  (skip indel calling and annotation; amplicon mode only) \\
         --cpus        <threads_per_process> \\
         && nextflow clean -f
 
@@ -52,6 +53,7 @@ workflow {
       --minvaf      Minimum variant allele frequency. Default: 1.0 (wes) / 1.5 (amplicon).
       --minvad      Minimum variant allele depth. Default: 10 (wes) / 0 (amplicon).
       --vep_cache   Local VEP cache directory. Default: $HOME/.vep.
+      --skip_indel  Skip indel calling and annotation (amplicon mode only).
       --cpus        Threads per step. Default: 4.
       --help        Show this help message and exit.
     '''
@@ -148,7 +150,7 @@ workflow {
                   .collect()            // waits for all three tokens
                   .map{ 'ready' }       // single value for gating
     // Indels only in amplicon mode
-    if( params.mode == 'amplicon' ) {
+    if( params.mode == 'amplicon' && !params.skip_indel ) {
       // Gate indel calling on the barrier
       indel_in = bam_plus_id.combine(barrier)
       indel_ch = panel_indel_call(indel_in)
@@ -175,7 +177,7 @@ workflow {
                   .collect()            // waits for all three tokens
                   .map{ 'ready' }       // single value for gating
     // Indels only in amplicon mode
-    if( params.mode == 'amplicon' ) {
+    if( params.mode == 'amplicon' && !params.skip_indel ) {
       // Gate indel calling on the barrier
       indel_in = bam_plus_id.combine(barrier)
       indel_ch = panel_indel_call(indel_in)
@@ -205,7 +207,7 @@ workflow {
                   .collect()            // waits for all three tokens
                   .map{ 'ready' }       // single value for gating
     // Indels only in amplicon mode
-    if( params.mode == 'amplicon' ) {
+    if( params.mode == 'amplicon' && !params.skip_indel ) {
       // Gate indel calling on the barrier
       indel_in = both_plus_id_ch.combine(barrier)
       indel_ch = panel_indel_call(indel_in)
