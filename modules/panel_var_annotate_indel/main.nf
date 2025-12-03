@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 
 process panel_var_annotate_indel {
   tag "${run_id}"
-  container 'ghcr.io/mvz-hp/panel_var_annotate:1.0.5'
+  container 'ghcr.io/mvz-hp/panel_var_annotate:1.0.6'
   containerOptions "--entrypoint \"\" --volume ${params.vep_cache}:/vep"
   cpus params.cpus
 
@@ -20,7 +20,7 @@ process panel_var_annotate_indel {
     // Set default params if not provided
     def mincov = params.mincov ?: 400
     def minvaf = params.minvaf ?: 1.5
-    def minvad = params.minvad ?: 0
+    def minvad = params.minvad ?: 10
 
     """
     python3 /app/scripts/panel_var_annotate.py \

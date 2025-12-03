@@ -17,7 +17,16 @@ process ngs_dna_align {
     path("ngs_dna_align.${run_id}")
 
   script:
-    def dedup_mode = (params.mode == 'wes') ? 'umi' : 'none'
+    // Set default params if not provided
+    def dedup_mode
+    def skip_trim
+    if (params.mode == 'wes') {
+      dedup_mode = params.dedup_mode ?: 'umi'
+      skip_trim = params.skip_trim ?: null
+    } else if (params.mode == 'amplicon') {
+      dedup_mode = params.dedup_mode ?: 'none'
+      skip_trim = params.skip_trim ?: '--skip_trim'
+    }
     """
     python3 /app/scripts/ngs_dna_align.py \
       -f ${reads_dir} \
@@ -25,6 +34,7 @@ process ngs_dna_align {
       -m ${dedup_mode} \
       -r ${run_id} \
       -c ${task.cpus} \
+      ${skip_trim} \
       --no_date \
       -o \$PWD
     """

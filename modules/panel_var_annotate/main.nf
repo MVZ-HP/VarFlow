@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 
 process panel_var_annotate {
   tag "${run_id}"
-  container 'ghcr.io/mvz-hp/panel_var_annotate:1.0.5'
+  container 'ghcr.io/mvz-hp/panel_var_annotate:1.0.6'
   containerOptions "--entrypoint \"\" --volume ${params.vep_cache}:/vep"
   cpus params.cpus
 
@@ -28,7 +28,7 @@ process panel_var_annotate {
     } else if (params.mode == 'amplicon') {
       mincov = params.mincov ?: 400
       minvaf = params.minvaf ?: 1.5
-      minvad = params.minvad ?: 0
+      minvad = params.minvad ?: 10
     }
 
     """
