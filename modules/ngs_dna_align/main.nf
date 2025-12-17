@@ -22,7 +22,7 @@ process ngs_dna_align {
     def skip_trim
     if (params.mode == 'wes') {
       dedup_mode = params.dedup_mode ?: 'umi'
-      skip_trim = params.skip_trim ?: null
+      skip_trim = params.skip_trim ?: ''
     } else if (params.mode == 'amplicon') {
       dedup_mode = params.dedup_mode ?: 'none'
       skip_trim = params.skip_trim ?: '--skip_trim'
