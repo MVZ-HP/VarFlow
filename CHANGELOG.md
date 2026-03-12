@@ -50,3 +50,19 @@
   - `panel_cnv_analysis`: 1.0.10
   - `panel_indel_call`: 1.0.2
   - `panel_var_annotate`: 1.0.6
+
+## [1.0.4] - 12.03.2026
+### Hinzugefügt
+- VarFlow für MRD teilweise angepasst:
+  - `mrd` als Analysemodus ergänzt
+  - `mrd` als Panel ergänzt
+  - MRD-spezifische Default-Schwellen für Coverage-QC und Annotation ergänzt
+  - Option `extract_umis` für MRD-Alignment ergänzt
+  - CNV-Analyse wird im Modus `mrd` nicht ausgeführt
+- Modul-Versionen:
+  - `ngs_dna_align`: 1.0.1
+  - `ngs_snv_call`: 1.0.1
+  - `panel_cov_qc`: 1.0.12
+  - `panel_cnv_analysis`: 1.0.10
+  - `panel_indel_call`: 1.0.2
+  - `panel_var_annotate`: 1.0.7

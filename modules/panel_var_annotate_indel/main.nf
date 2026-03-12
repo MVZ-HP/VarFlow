@@ -3,14 +3,14 @@ nextflow.enable.dsl = 2
 
 process panel_var_annotate_indel {
   tag "${run_id}"
-  container 'ghcr.io/mvz-hp/panel_var_annotate:1.0.6'
+  container 'ghcr.io/mvz-hp/panel_var_annotate:1.0.7'
   containerOptions "--entrypoint \"\" --volume ${params.vep_cache}:/vep"
   cpus params.cpus
 
-  publishDir "varflow.${run_id}.${params.date}", mode: 'copy', overwrite: true
+  publishDir "${publish_dir}", mode: 'copy', overwrite: true
 
   input:
-    tuple path(snv_dir), val(run_id)
+    tuple path(snv_dir), val(run_id), val(publish_dir)
 
   output:
     // Keep run_id in the path name for clarity

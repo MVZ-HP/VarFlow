@@ -1,0 +1,15 @@
+# Nextflow runtime/cache
+.nextflow/
+.nextflow.log*
+
+# Nextflow outputs/reports
+work/
+results/
+*.command.*
+*.exitcode
+*.trace
+trace.txt
+timeline.html
+report.html
+dag.dot
+dag-*.dot

@@ -7,10 +7,10 @@ process panel_cnv_analysis {
   containerOptions '--entrypoint ""'
   cpus params.cpus
 
-  publishDir "varflow.${run_id}.${params.date}", mode: 'copy', overwrite: true
+  publishDir "${publish_dir}", mode: 'copy', overwrite: true
 
   input:
-    tuple path(align_dir), val(run_id)
+    tuple path(align_dir), val(run_id), val(publish_dir)
 
   output:
     // Keep run_id in the path name for clarity

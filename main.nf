@@ -9,24 +9,26 @@ include { panel_var_annotate       } from './modules/panel_var_annotate/main.nf'
 include { panel_var_annotate_indel } from './modules/panel_var_annotate_indel/main.nf'
 include { panel_indel_call         } from './modules/panel_indel_call/main.nf'
 include { infer_run_id             } from './modules/infer_run_id/main.nf'
+include { resolve_publish_dir      } from './modules/resolve_publish_dir/main.nf'
 include { write_log_file           } from './modules/write_log_file/main.nf'
 
 workflow {
-  //VARFFLOW_VERSION = '1.0.3'
+  def VARFLOW_VERSION = params.varflow_version
+
   // Help message
   if( params.help ) {
-    println '''
-    VarFlow v1.0.3
+    println """
+    VarFlow v${VARFLOW_VERSION}
 
     A Nextflow-DSL2 pipeline for DNA-seq alignment, QC, CNV, SNV calling, and annotation.
 
     Usage example WES (on default hg38):
-      nextflow run mvz-hp/VarFlow -r v1.0.3 --mode wes --panel wes_panel \\
+      nextflow run mvz-hp/VarFlow -r v${VARFLOW_VERSION} --mode wes --panel wes_panel \\
       --reads_dir FASTQ_folder --run_id WES_run_1 --cpus 16 && nextflow clean -f
 
     Usage:
-      nextflow run mvz-hp/VarFlow -r v1.0.3 \\
-        --mode        <wes|amplicon> \\
+      nextflow run mvz-hp/VarFlow -r v${VARFLOW_VERSION} \\
+        --mode        <wes|amplicon|mrd> \\
         --panel       <panel_name> \\
         --reads_dir   </path/to/fastq_folder> \\
         --bams_dir    </path/to/bam_folder> \\
@@ -38,6 +40,8 @@ workflow {
         --minvaf      <min_variant_allele_frequency> \\
         --minvad      <min_variant_allele_depth> \\
         --vep_cache   <path_to_vep_cache> \\
+        --skip_covqc  (skip coverage QC) \\
+        --skip_cnv    (skip CNV analysis) \\
         --skip_indel  (skip indel calling and annotation; amplicon mode only) \\
         --cpus        <threads_per_process> \\
         && nextflow clean -f
@@ -54,21 +58,23 @@ workflow {
       --mincov      Minimum coverage threshold. Default: 200 (wes) / 400 (amplicon).
       --minvaf      Minimum variant allele frequency. Default: 1.0 (wes) / 1.5 (amplicon).
       --minvad      Minimum variant allele depth. Default: 10.
-      --vep_cache   Local VEP cache directory. Default: $HOME/.vep.
+      --vep_cache   Local VEP cache directory. Default: \$HOME/.vep.
+      --skip_covqc  Skip coverage QC.
+      --skip_cnv    Skip CNV analysis.
       --skip_indel  Skip indel calling and annotation (amplicon mode only).
       --cpus        Threads per step. Default: 4.
       --help        Show this help message and exit.
-    '''
+    """
     System.exit(0)
   }
 
   // Check if a valid mode was specified
-  if( !(params.mode in ['wes', 'amplicon']) ) {
-    error "No valid mode specified. Set --mode wes OR --mode amplicon."
+  if( !(params.mode in ['wes', 'amplicon', 'mrd']) ) {
+    error "No valid mode specified. Set --mode wes OR --mode amplicon OR --mode mrd."
   }
 
   // Check if panel was specified
-  if( !(params.panel in ['wes_panel', 'lymphom', 'myeloid']) ) {
+  if( !(params.panel in ['wes_panel', 'lymphom', 'myeloid', 'mrd']) ) {
     error "No panel specified. Set --panel <panel_name>."
   }
 
@@ -127,93 +133,126 @@ workflow {
 
   // Turn file into a value channel (trim newline)
   run_id_ch = runid_file_ch.map { f -> f.text.trim() }
+  publish_dir_file_ch = resolve_publish_dir(run_id_ch)
+  publish_dir_ch = publish_dir_file_ch.map { f -> f.text.trim() }
+  run_meta_ch = run_id_ch.combine(publish_dir_ch)
 
   // Prepare channels for the four entry modes
+  // Input: FASTQs -> Align -> BAMs -> SNVs -> Annot + QC (+ CNV only for wes/amplicon)
   if( params.reads_dir ) {
     reads_ch = channel.value( chosenFolder )
-    // Pair each input with the single run_id value
-    reads_plus_id_ch = reads_ch.combine(run_id_ch)
+    // Pair each input with run metadata
+    reads_plus_id_ch = reads_ch.combine(run_meta_ch).map { reads_dir, run_id, publish_dir -> tuple(reads_dir, run_id, publish_dir) }
     // Align
     bam_ch = ngs_dna_align(reads_plus_id_ch)
-    bam_plus_id = bam_ch.combine(run_id_ch)
+    bam_plus_id = bam_ch.combine(run_meta_ch).map { align_dir, run_id, publish_dir -> tuple(align_dir, run_id, publish_dir) }
     // Call SNVs
     snv_ch = ngs_snv_call(bam_plus_id)
-    snv_plus_id = snv_ch.combine(run_id_ch)
-    // QC+CNV+Annot
-    cov_out = panel_cov_qc(bam_plus_id)
-    cnv_out = panel_cnv_analysis(bam_plus_id)
+    snv_plus_id = snv_ch.combine(run_meta_ch).map { snv_dir, run_id, publish_dir -> tuple(snv_dir, run_id, publish_dir) }
+    // QC+Annot (+ CNV only for wes/amplicon)
+    if( !params.skip_covqc ) {
+      cov_out = panel_cov_qc(bam_plus_id)
+    }
     ann_out = panel_var_annotate(snv_plus_id)
+    if( params.mode != 'mrd' && !params.skip_cnv ) {
+      cnv_out = panel_cnv_analysis(bam_plus_id)
+    }
     // ----- barrier that fires *after* cov + cnv + ann are done -----
-    def barrier = channel
-                  .empty()
-                  .mix( cov_out.map{ true } )
-                  .mix( cnv_out.map{ true } )
-                  .mix( ann_out.map{ true } )
-                  .collect()            // waits for all three tokens
+    def barrier_builder = channel
+                          .empty()
+                          .mix( ann_out.map{ true } )
+    if( !params.skip_covqc ) {
+      barrier_builder = barrier_builder.mix( cov_out.map{ true } )
+    }
+    if( params.mode != 'mrd' && !params.skip_cnv ) {
+      barrier_builder = barrier_builder.mix( cnv_out.map{ true } )
+    }
+    def barrier = barrier_builder
+                  .collect()            // waits for all expected tokens
                   .map{ 'ready' }       // single value for gating
     // Indels only in amplicon mode
     if( params.mode == 'amplicon' && !params.skip_indel ) {
       // Gate indel calling on the barrier
-      indel_in = bam_plus_id.combine(barrier)
+      indel_in = bam_plus_id.combine(barrier).map { align_dir, run_id, publish_dir, ready -> tuple(align_dir, run_id, publish_dir, ready) }
       indel_ch = panel_indel_call(indel_in)
-      indel_plus_id = indel_ch.combine(run_id_ch)
+      indel_plus_id = indel_ch.combine(run_meta_ch).map { indel_dir, run_id, publish_dir -> tuple(indel_dir, run_id, publish_dir) }
       panel_var_annotate_indel(indel_plus_id)
     }
   }
+  // Input: BAMs -> SNVs -> Annot + QC (+ CNV only for wes/amplicon)
   else if( params.bams_dir ) {
     bam_ch = channel.value( chosenFolder )
-    bam_plus_id = bam_ch.combine(run_id_ch)
+    bam_plus_id = bam_ch.combine(run_meta_ch).map { align_dir, run_id, publish_dir -> tuple(align_dir, run_id, publish_dir) }
     // Call SNVs
     snv_ch = ngs_snv_call(bam_plus_id)
-    snv_plus_id = snv_ch.combine(run_id_ch)
-    // QC+CNV+Annot
-    cov_out = panel_cov_qc(bam_plus_id)
-    cnv_out = panel_cnv_analysis(bam_plus_id)
+    snv_plus_id = snv_ch.combine(run_meta_ch).map { snv_dir, run_id, publish_dir -> tuple(snv_dir, run_id, publish_dir) }
+    // QC+Annot (+ CNV only for wes/amplicon)
+    if( !params.skip_covqc ) {
+      cov_out = panel_cov_qc(bam_plus_id)
+    }
     ann_out = panel_var_annotate(snv_plus_id)
+    if( params.mode != 'mrd' && !params.skip_cnv ) {
+      cnv_out = panel_cnv_analysis(bam_plus_id)
+    }
     // ----- barrier that fires *after* cov + cnv + ann are done -----
-    def barrier = channel
-                  .empty()
-                  .mix( cov_out.map{ true } )
-                  .mix( cnv_out.map{ true } )
-                  .mix( ann_out.map{ true } )
-                  .collect()            // waits for all three tokens
+    def barrier_builder = channel
+                          .empty()
+                          .mix( ann_out.map{ true } )
+    if( !params.skip_covqc ) {
+      barrier_builder = barrier_builder.mix( cov_out.map{ true } )
+    }
+    if( params.mode != 'mrd' && !params.skip_cnv ) {
+      barrier_builder = barrier_builder.mix( cnv_out.map{ true } )
+    }
+    def barrier = barrier_builder
+                  .collect()            // waits for all expected tokens
                   .map{ 'ready' }       // single value for gating
     // Indels only in amplicon mode
     if( params.mode == 'amplicon' && !params.skip_indel ) {
       // Gate indel calling on the barrier
-      indel_in = bam_plus_id.combine(barrier)
+      indel_in = bam_plus_id.combine(barrier).map { align_dir, run_id, publish_dir, ready -> tuple(align_dir, run_id, publish_dir, ready) }
       indel_ch = panel_indel_call(indel_in)
-      indel_plus_id = indel_ch.combine(run_id_ch)
+      indel_plus_id = indel_ch.combine(run_meta_ch).map { indel_dir, run_id, publish_dir -> tuple(indel_dir, run_id, publish_dir) }
       panel_var_annotate_indel(indel_plus_id)
     }
   }
+  // Input: VCFs -> Annot only (no QC or CNV)
   else if( params.vcfs_dir ) {
     snv_ch = channel.value( chosenFolder )
-    snv_plus_id_ch = snv_ch.combine(run_id_ch)
+    snv_plus_id_ch = snv_ch.combine(run_meta_ch).map { snv_dir, run_id, publish_dir -> tuple(snv_dir, run_id, publish_dir) }
     // Annotate only
     panel_var_annotate(snv_plus_id_ch)
   }
   else if( params.bam_vcf_dir ) {
     both_ch = channel.value( chosenFolder )
-    both_plus_id_ch = both_ch.combine(run_id_ch)
-    // QC+CNV+Annot
-    cov_out = panel_cov_qc(both_plus_id_ch)
-    cnv_out = panel_cnv_analysis(both_plus_id_ch)
+    both_plus_id_ch = both_ch.combine(run_meta_ch).map { both_dir, run_id, publish_dir -> tuple(both_dir, run_id, publish_dir) }
+    // QC+Annot (+ CNV only for wes/amplicon)
+    if( !params.skip_covqc ) {
+      cov_out = panel_cov_qc(both_plus_id_ch)
+    }
     ann_out = panel_var_annotate(both_plus_id_ch)
+    if( params.mode != 'mrd' && !params.skip_cnv ) {
+      cnv_out = panel_cnv_analysis(both_plus_id_ch)
+    }
     // ----- barrier that fires *after* cov + cnv + ann are done -----
-    def barrier = channel
-                  .empty()
-                  .mix( cov_out.map{ true } )
-                  .mix( cnv_out.map{ true } )
-                  .mix( ann_out.map{ true } )
-                  .collect()            // waits for all three tokens
+    def barrier_builder = channel
+                          .empty()
+                          .mix( ann_out.map{ true } )
+    if( !params.skip_covqc ) {
+      barrier_builder = barrier_builder.mix( cov_out.map{ true } )
+    }
+    if( params.mode != 'mrd' && !params.skip_cnv ) {
+      barrier_builder = barrier_builder.mix( cnv_out.map{ true } )
+    }
+    def barrier = barrier_builder
+                  .collect()            // waits for all expected tokens
                   .map{ 'ready' }       // single value for gating
     // Indels only in amplicon mode
     if( params.mode == 'amplicon' && !params.skip_indel ) {
       // Gate indel calling on the barrier
-      indel_in = both_plus_id_ch.combine(barrier)
+      indel_in = both_plus_id_ch.combine(barrier).map { both_dir, run_id, publish_dir, ready -> tuple(both_dir, run_id, publish_dir, ready) }
       indel_ch = panel_indel_call(indel_in)
-      indel_plus_id = indel_ch.combine(run_id_ch)
+      indel_plus_id = indel_ch.combine(run_meta_ch).map { indel_dir, run_id, publish_dir -> tuple(indel_dir, run_id, publish_dir) }
       panel_var_annotate_indel(indel_plus_id)
     }
   }
@@ -222,18 +261,18 @@ workflow {
   // Define information for logging
   log_info = [
     Pipeline: [
-      VarFlow_version  : '1.0.3',
+      VarFlow_version  : VARFLOW_VERSION,
       Nextflow_version : workflow.nextflow.version,
       Date_time        : "${params.date} ${new Date().format('HH:mm:ss')}"
     ],
 
     Modules: [
-      ngs_dna_align        : '1.0.0',
+      ngs_dna_align        : '1.0.1',
       ngs_snv_call         : '1.0.1',
-      panel_cov_qc         : '1.0.11',
+      panel_cov_qc         : '1.0.12',
       panel_cnv_analysis   : '1.0.10',
       panel_indel_call     : '1.0.2',
-      panel_var_annotate   : '1.0.6'
+      panel_var_annotate   : '1.0.7'
     ],
 
     //Params: params
@@ -242,8 +281,8 @@ workflow {
   // prepare versions channel
   versions_ch = channel.value(log_info)
 
-  // combine with run_id
-  versions_plus_id_ch = versions_ch.combine(run_id_ch)
+  // combine with run metadata
+  versions_plus_id_ch = versions_ch.combine(run_meta_ch).map { log_info_item, run_id, publish_dir -> tuple(log_info_item, run_id, publish_dir) }
 
   // write versions log file
   write_log_file(versions_plus_id_ch)
