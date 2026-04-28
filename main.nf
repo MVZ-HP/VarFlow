@@ -37,6 +37,7 @@ workflow {
         --run_id      <unique_run_id> \\
         --assembly    <hg19|hg38> \\
         --mincov      <min_coverage> \\
+        --lowcov      <low_coverage> \\
         --minvaf      <min_variant_allele_frequency> \\
         --minvad      <min_variant_allele_depth> \\
         --vep_cache   <path_to_vep_cache> \\
@@ -269,7 +270,7 @@ workflow {
     Modules: [
       ngs_dna_align        : '1.0.1',
       ngs_snv_call         : '1.0.1',
-      panel_cov_qc         : '1.0.12',
+      panel_cov_qc         : '1.0.13',
       panel_cnv_analysis   : '1.0.10',
       panel_indel_call     : '1.0.2',
       panel_var_annotate   : '1.0.7'

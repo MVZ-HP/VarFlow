@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 
 process panel_cov_qc {
   tag "${run_id}"
-  container 'ghcr.io/mvz-hp/panel_cov_qc:1.0.12'
+  container 'ghcr.io/mvz-hp/panel_cov_qc:1.0.13'
   containerOptions '--entrypoint ""'
   cpus params.cpus
 
@@ -21,6 +21,7 @@ process panel_cov_qc {
     def mincov
     if (params.mode == 'wes') {
       mincov = params.mincov ?: 200
+      lowcov = params.lowcov ?: 100
     } else if (params.mode == 'amplicon') {
       mincov = params.mincov ?: 400
     } else if (params.mode == 'mrd') {
@@ -33,6 +34,7 @@ process panel_cov_qc {
       -a ${params.assembly} \
       -p ${params.panel} \
       -m ${mincov} \
+      -l ${lowcov} \
       -c ${task.cpus} \
       --run_id ${run_id} \
       --no_date \
