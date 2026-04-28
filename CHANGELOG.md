@@ -66,3 +66,14 @@
   - `panel_cnv_analysis`: 1.0.10
   - `panel_indel_call`: 1.0.2
   - `panel_var_annotate`: 1.0.7
+
+## [1.0.4] - 12.03.2026
+### Hinzugefügt
+- CovQC v1.0.13: Anhand-PDF wird erstellt
+- Modul-Versionen:
+  - `ngs_dna_align`: 1.0.1
+  - `ngs_snv_call`: 1.0.1
+  - `panel_cov_qc`: 1.0.13
+  - `panel_cnv_analysis`: 1.0.10
+  - `panel_indel_call`: 1.0.2
+  - `panel_var_annotate`: 1.0.7
