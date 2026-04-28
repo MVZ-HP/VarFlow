@@ -67,7 +67,7 @@
   - `panel_indel_call`: 1.0.2
   - `panel_var_annotate`: 1.0.7
 
-## [1.0.4] - 12.03.2026
+## [1.0.5] - 28.04.2026
 ### Hinzugefügt
 - CovQC v1.0.13: Anhand-PDF wird erstellt
 - Modul-Versionen:
