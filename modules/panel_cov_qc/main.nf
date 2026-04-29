@@ -30,6 +30,7 @@ process panel_cov_qc {
       mincov = params.mincov ?: 10000
       lowcov = params.lowcov
     }
+    // Only include lowcov argument if it's set
     def lowcov_arg = lowcov != null ? "-l ${lowcov}" : ''
 
     """
