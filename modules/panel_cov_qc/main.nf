@@ -10,7 +10,8 @@ process panel_cov_qc {
   publishDir "${publish_dir}", mode: 'copy', overwrite: true
 
   input:
-    tuple path(align_dir), val(run_id), val(publish_dir)
+    // Staged beside align_dir so panel_cov_qc.py can find the Lauf assignment TSV in parent directories.
+    tuple path(align_dir), path(panel_assignment_files), val(run_id), val(publish_dir)
 
   output:
     // Keep run_id in the path name for clarity

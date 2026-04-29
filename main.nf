@@ -12,6 +12,34 @@ include { infer_run_id             } from './modules/infer_run_id/main.nf'
 include { resolve_publish_dir      } from './modules/resolve_publish_dir/main.nf'
 include { write_log_file           } from './modules/write_log_file/main.nf'
 
+def findPanelAssignmentFilesInParents(dir) {
+  if( dir == null ) {
+    return []
+  }
+
+  def matches = dir.listFiles()?.findAll { f ->
+    f.isFile() && f.name.contains('_MolID-AuftragID-PanelID')
+  }?.collect { f ->
+    file(f.toString())
+  } ?: []
+  if( matches ) {
+    return matches
+  }
+
+  return findPanelAssignmentFilesInParents(dir.parentFile)
+}
+
+def findPanelAssignmentFiles(inputDir) {
+  def inputPath = file(inputDir)
+  def current = inputPath instanceof java.nio.file.Path ? inputPath.toFile() : inputPath
+  current = current.toPath().toAbsolutePath().normalize().toFile()
+  if( current.isFile() ) {
+    current = current.parentFile
+  }
+
+  return findPanelAssignmentFilesInParents(current)
+}
+
 workflow {
   def VARFLOW_VERSION = params.varflow_version
 
@@ -120,6 +148,7 @@ workflow {
   if( !chosenFolder.exists() ) {
     error "The chosen input folder does not exist: ${chosenFolder}"
   }
+  panel_assignment_files_ch = channel.value( findPanelAssignmentFiles(chosenFolder) )
 
   // Build a single-path channel for infer_run_id
   input_dir_ch = channel.value( chosenFolder )
@@ -152,7 +181,8 @@ workflow {
     snv_plus_id = snv_ch.combine(run_meta_ch).map { snv_dir, run_id, publish_dir -> tuple(snv_dir, run_id, publish_dir) }
     // QC+Annot (+ CNV only for wes/amplicon)
     if( !params.skip_covqc ) {
-      cov_out = panel_cov_qc(bam_plus_id)
+      cov_plus_assignment_ch = bam_plus_id.combine(panel_assignment_files_ch).map { align_dir, run_id, publish_dir, assignment_files -> tuple(align_dir, assignment_files, run_id, publish_dir) }
+      cov_out = panel_cov_qc(cov_plus_assignment_ch)
     }
     ann_out = panel_var_annotate(snv_plus_id)
     if( params.mode != 'mrd' && !params.skip_cnv ) {
@@ -189,7 +219,8 @@ workflow {
     snv_plus_id = snv_ch.combine(run_meta_ch).map { snv_dir, run_id, publish_dir -> tuple(snv_dir, run_id, publish_dir) }
     // QC+Annot (+ CNV only for wes/amplicon)
     if( !params.skip_covqc ) {
-      cov_out = panel_cov_qc(bam_plus_id)
+      cov_plus_assignment_ch = bam_plus_id.combine(panel_assignment_files_ch).map { align_dir, run_id, publish_dir, assignment_files -> tuple(align_dir, assignment_files, run_id, publish_dir) }
+      cov_out = panel_cov_qc(cov_plus_assignment_ch)
     }
     ann_out = panel_var_annotate(snv_plus_id)
     if( params.mode != 'mrd' && !params.skip_cnv ) {
@@ -229,7 +260,8 @@ workflow {
     both_plus_id_ch = both_ch.combine(run_meta_ch).map { both_dir, run_id, publish_dir -> tuple(both_dir, run_id, publish_dir) }
     // QC+Annot (+ CNV only for wes/amplicon)
     if( !params.skip_covqc ) {
-      cov_out = panel_cov_qc(both_plus_id_ch)
+      cov_plus_assignment_ch = both_plus_id_ch.combine(panel_assignment_files_ch).map { both_dir, run_id, publish_dir, assignment_files -> tuple(both_dir, assignment_files, run_id, publish_dir) }
+      cov_out = panel_cov_qc(cov_plus_assignment_ch)
     }
     ann_out = panel_var_annotate(both_plus_id_ch)
     if( params.mode != 'mrd' && !params.skip_cnv ) {
