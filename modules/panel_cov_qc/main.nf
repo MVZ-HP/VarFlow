@@ -19,6 +19,7 @@ process panel_cov_qc {
   script:
     // Set default params if not provided
     def mincov
+    def lowcov
     if (params.mode == 'wes') {
       mincov = params.mincov ?: 200
       lowcov = params.lowcov ?: 100
