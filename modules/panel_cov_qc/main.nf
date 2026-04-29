@@ -25,9 +25,12 @@ process panel_cov_qc {
       lowcov = params.lowcov ?: 100
     } else if (params.mode == 'amplicon') {
       mincov = params.mincov ?: 400
+      lowcov = params.lowcov
     } else if (params.mode == 'mrd') {
       mincov = params.mincov ?: 10000
+      lowcov = params.lowcov
     }
+    def lowcov_arg = lowcov != null ? "-l ${lowcov}" : ''
 
     """
     python3 /app/scripts/panel_cov_qc.py \
@@ -35,7 +38,7 @@ process panel_cov_qc {
       -a ${params.assembly} \
       -p ${params.panel} \
       -m ${mincov} \
-      -l ${lowcov} \
+      ${lowcov_arg} \
       -c ${task.cpus} \
       --run_id ${run_id} \
       --no_date \

@@ -146,6 +146,7 @@ nextflow run main.nf \
 | Parameter | Meaning | Default |
 | --- | --- | --- |
 | `--mincov` | Minimum coverage threshold | Mode-dependent |
+| `--lowcov` | Low coverage threshold for coverage QC | `100` for `wes`; unset for other modes unless provided |
 | `--minvaf` | Minimum variant allele frequency threshold | Mode-dependent |
 | `--minvad` | Minimum variant allele depth threshold | `10` for `wes` and `amplicon`, `3` for `mrd` |
 
