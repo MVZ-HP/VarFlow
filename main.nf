@@ -40,6 +40,15 @@ def findPanelAssignmentFiles(inputDir) {
   return findPanelAssignmentFilesInParents(current)
 }
 
+def addPanelAssignmentFiles(values) {
+  def alignDir = values[0]
+  def runId = values[1]
+  def publishDir = values[2]
+  def assignmentFiles = values.size() > 3 ? values[3..-1] : []
+
+  return tuple(alignDir, assignmentFiles, runId, publishDir)
+}
+
 workflow {
   def VARFLOW_VERSION = params.varflow_version
 
@@ -181,7 +190,7 @@ workflow {
     snv_plus_id = snv_ch.combine(run_meta_ch).map { snv_dir, run_id, publish_dir -> tuple(snv_dir, run_id, publish_dir) }
     // QC+Annot (+ CNV only for wes/amplicon)
     if( !params.skip_covqc ) {
-      cov_plus_assignment_ch = bam_plus_id.combine(panel_assignment_files_ch).map { align_dir, run_id, publish_dir, assignment_files -> tuple(align_dir, assignment_files, run_id, publish_dir) }
+      cov_plus_assignment_ch = bam_plus_id.combine(panel_assignment_files_ch).map { values -> addPanelAssignmentFiles(values) }
       cov_out = panel_cov_qc(cov_plus_assignment_ch)
     }
     ann_out = panel_var_annotate(snv_plus_id)
@@ -219,7 +228,7 @@ workflow {
     snv_plus_id = snv_ch.combine(run_meta_ch).map { snv_dir, run_id, publish_dir -> tuple(snv_dir, run_id, publish_dir) }
     // QC+Annot (+ CNV only for wes/amplicon)
     if( !params.skip_covqc ) {
-      cov_plus_assignment_ch = bam_plus_id.combine(panel_assignment_files_ch).map { align_dir, run_id, publish_dir, assignment_files -> tuple(align_dir, assignment_files, run_id, publish_dir) }
+      cov_plus_assignment_ch = bam_plus_id.combine(panel_assignment_files_ch).map { values -> addPanelAssignmentFiles(values) }
       cov_out = panel_cov_qc(cov_plus_assignment_ch)
     }
     ann_out = panel_var_annotate(snv_plus_id)
@@ -260,7 +269,7 @@ workflow {
     both_plus_id_ch = both_ch.combine(run_meta_ch).map { both_dir, run_id, publish_dir -> tuple(both_dir, run_id, publish_dir) }
     // QC+Annot (+ CNV only for wes/amplicon)
     if( !params.skip_covqc ) {
-      cov_plus_assignment_ch = both_plus_id_ch.combine(panel_assignment_files_ch).map { both_dir, run_id, publish_dir, assignment_files -> tuple(both_dir, assignment_files, run_id, publish_dir) }
+      cov_plus_assignment_ch = both_plus_id_ch.combine(panel_assignment_files_ch).map { values -> addPanelAssignmentFiles(values) }
       cov_out = panel_cov_qc(cov_plus_assignment_ch)
     }
     ann_out = panel_var_annotate(both_plus_id_ch)
