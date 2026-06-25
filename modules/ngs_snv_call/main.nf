@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 
 process ngs_snv_call {
   tag "${run_id}"
-  container 'ghcr.io/mvz-hp/ngs_snv_call:1.0.1'
+  container 'ghcr.io/mvz-hp/ngs_snv_call:1.0.2'
   containerOptions '--entrypoint ""'
   cpus params.cpus
 

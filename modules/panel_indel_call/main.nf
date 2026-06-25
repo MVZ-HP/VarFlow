@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 
 process panel_indel_call {
   tag "${run_id}"
-  container 'ghcr.io/mvz-hp/panel_indel_call:1.0.2'
+  container 'ghcr.io/mvz-hp/panel_indel_call:1.0.3'
   containerOptions '--entrypoint ""'
   cpus params.cpus
 

@@ -21,12 +21,14 @@ process ngs_dna_align {
     def dedup_mode
     def skip_trim
     def extract_umis = ''
+    def indel_friendly = ''
     if (params.mode == 'wes') {
       dedup_mode = params.dedup_mode ?: 'umi'
       skip_trim = params.skip_trim ?: ''
     } else if (params.mode == 'amplicon') {
       dedup_mode = params.dedup_mode ?: 'none'
       skip_trim = params.skip_trim ?: '--skip_trim'
+      indel_friendly = '--indel_friendly'
     } else if (params.mode == 'mrd') {
       dedup_mode = params.dedup_mode ?: 'umi'
       extract_umis = params.extract_umis ? '--extract_umis' : ''
@@ -40,6 +42,7 @@ process ngs_dna_align {
       -c ${task.cpus} \
       ${skip_trim} \
       ${extract_umis} \
+      ${indel_friendly} \
       --no_date \
       -o \$PWD
     """
