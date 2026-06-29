@@ -13,3 +13,6 @@ timeline.html
 report.html
 dag.dot
 dag-*.dot
+
+# Codex
+.codex

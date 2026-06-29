@@ -46,7 +46,7 @@ Exactly one of the following input options must be provided:
 Run ID selection is resolved in this order:
 
 1. `--run_id` if explicitly supplied
-2. `RunName` or `RunID` from `SampleSheet.csv` in the input directory when `--samplesheet true`
+2. `RunName` or `RunID` from `SampleSheet.csv` in the input directory, or its direct parent, when `--samplesheet true`
 3. An auto-generated default such as `myeloid_hg38_r123456`
 
 ## Requirements
@@ -139,7 +139,7 @@ nextflow run main.nf \
 | `--assembly` | Reference genome | `hg38` |
 | `--vep_cache` | Local VEP cache path mounted into annotation container | `$HOME/.vep` |
 | `--cpus` | CPUs per process | `4` |
-| `--samplesheet` | Try to infer run ID from `SampleSheet.csv` | `true` |
+| `--samplesheet` | Try to infer run ID from `SampleSheet.csv` in the input directory or its direct parent | `true` |
 
 ### Analysis thresholds
 

@@ -4,7 +4,7 @@ nextflow.enable.dsl = 2
 /**
  * Determine final run_id with precedence:
  *   1) explicit_id (if non-empty)
- *   2) SampleSheet.csv (RunName or RunID) in input_dir, if samplesheet=true
+ *   2) SampleSheet.csv (RunName or RunID) in input_dir or its direct parent, if samplesheet=true
  *   3) default_id
  *
  * Inputs:
@@ -21,7 +21,7 @@ process infer_run_id {
 
   // No container needed; busybox/sh coreutils are enough
   input:
-    path input_dir
+    val input_dir
     val explicit_id
     val default_id
     val samplesheet
@@ -42,7 +42,14 @@ process infer_run_id {
     # 2) try SampleSheet.csv if requested
     use_ss="${samplesheet}"
     if [ "\${use_ss}" = "true" ] || [ "\${use_ss}" = "True" ]; then
-      sheet=\$(find "\$(realpath "${input_dir}")" -maxdepth 1 -type f -name "SampleSheet.csv" | head -1 || true)
+      input_root=\$(realpath "${input_dir}")
+      sheet=""
+      for sheet_dir in "\$input_root" "\$(dirname "\$input_root")"; do
+        sheet=\$(find "\$sheet_dir" -maxdepth 1 -type f -name "SampleSheet.csv" | head -1 || true)
+        if [ -n "\$sheet" ]; then
+          break
+        fi
+      done
       if [ -n "\$sheet" ]; then
         # Accept RunName or RunID in first column, value in the 2nd column
         runid=\$(grep -E '^(RunName|RunID),' "\$sheet" | head -1 | cut -d',' -f2 | tr -d '\r' || true)
