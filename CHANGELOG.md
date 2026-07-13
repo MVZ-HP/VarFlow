@@ -77,3 +77,14 @@
   - `panel_cnv_analysis`: 1.0.10
   - `panel_indel_call`: 1.0.2
   - `panel_var_annotate`: 1.0.7
+
+## [1.0.5] - 28.04.2026
+### Hinzugefügt
+- Annotation-Tool v1.0.8: Großes Update
+- Modul-Versionen:
+  - `ngs_dna_align`: 1.0.1
+  - `ngs_snv_call`: 1.0.1
+  - `panel_cov_qc`: 1.0.13
+  - `panel_cnv_analysis`: 1.0.10
+  - `panel_indel_call`: 1.0.2
+  - `panel_var_annotate`: 1.0.8
