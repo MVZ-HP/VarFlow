@@ -78,7 +78,7 @@
   - `panel_indel_call`: 1.0.2
   - `panel_var_annotate`: 1.0.7
 
-## [1.0.5] - 28.04.2026
+## [1.0.6] - 13.07.2026
 ### Hinzugefügt
 - Annotation-Tool v1.0.8: Großes Update
 - Modul-Versionen:
