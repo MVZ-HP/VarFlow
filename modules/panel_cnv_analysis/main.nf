@@ -19,9 +19,9 @@ process panel_cnv_analysis {
   script:
     // Set default params if not provided
     def method
-    if (params.mode == 'wes') {
+    if (params.panel == 'wes_panel') {
       method = 'hybrid_capture'
-    } else if (params.mode == 'amplicon') {
+    } else {
       method = 'amplicon'
     }
 

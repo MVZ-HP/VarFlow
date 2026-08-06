@@ -8,29 +8,33 @@ VarFlow standardizes routine panel and exome analysis into a single reproducible
 
 - Aligns paired-end FASTQs to `hg19` or `hg38`
 - Performs SNV calling from aligned BAMs
-- Runs coverage QC with mode-specific minimum coverage defaults
-- Runs CNV analysis for `wes` and `amplicon` workflows
+- Runs coverage QC with panel-specific minimum coverage defaults
+- Runs CNV analysis for `wes_panel`, `lymphom`, and `myeloid`
 - Annotates SNVs with VEP
 - Runs amplicon-only indel calling and annotation when enabled
 - Publishes all outputs into a single run-specific directory together with a pipeline log file
 
 All analysis steps run inside Docker containers pinned in the workflow modules.
 
-## Workflow Modes
+## Panel Workflows
 
-VarFlow supports three analysis modes:
+The selected panel determines the complete analysis workflow; a separate mode parameter is not needed:
 
-| Mode | Intended use | Default `mincov` | Default `minvaf` | Default `minvad` | Notes |
+| Panel | Workflow | Default `mincov` | Default `minvaf` | Default `minvad` | Notes |
 | --- | --- | ---: | ---: | ---: | --- |
-| `wes` | Whole-exome / hybrid capture style runs | 200 | 1.0 | 10 | CNV enabled by default |
-| `amplicon` | Amplicon panel sequencing | 400 | 1.5 | 10 | Indel calling enabled unless `--skip_indel` is set |
-| `mrd` | MRD-oriented processing | 10000 for coverage QC, 5000 for annotation | 0.1 | 3 | CNV is skipped automatically |
+| `wes_panel` | Whole-exome / hybrid capture | 200 | 1.0 | 10 | CNV enabled by default |
+| `lymphom`, `myeloid` | Amplicon sequencing | 400 | 1.5 | 10 | Indel calling enabled unless `--skip_indel` is set |
+| `b_lymphoid` | UMI-based amplicon sequencing | 400 | 1.5 | 10 | UMI extraction and indel calling enabled; CNV skipped |
+| `mrd` | MRD processing | 15000 for coverage QC, 6000 for annotation | 0.2 | 30 | CNV is skipped automatically |
 
-Additional mode-dependent behavior in alignment:
+Additional panel-dependent behavior in alignment:
 
-- `wes`: defaults to `dedup_mode=umi`
-- `amplicon`: defaults to `dedup_mode=none` and skips trimming unless overridden
-- `mrd`: defaults to `dedup_mode=umi`; optional `--extract_umis` is supported
+- `wes_panel`: defaults to `dedup_mode=umi`
+- `lymphom` and `myeloid`: default to `dedup_mode=none` and skip trimming unless overridden
+- `b_lymphoid`: defaults to `dedup_mode=umi` and UMI extraction; UMI extraction can be disabled with `--extract_umis false`
+- `mrd`: defaults to `dedup_mode=umi`, UMI extraction, and indel-friendly alignment; UMI extraction can be disabled with `--extract_umis false`
+
+MRD SNV calling disables pre-realignment. MRD annotation excludes `weak_evidence` calls by default.
 
 ## Supported Input Entry Points
 
@@ -76,7 +80,6 @@ nextflow run mvz-hp/VarFlow -profile docker [options]
 ```bash
 nextflow run main.nf \
   -profile docker \
-  --mode wes \
   --panel wes_panel \
   --reads_dir /path/to/fastqs \
   --run_id WES_run_001 \
@@ -90,7 +93,6 @@ nextflow run main.nf \
 ```bash
 nextflow run main.nf \
   -profile docker \
-  --mode amplicon \
   --panel myeloid \
   --bams_dir /path/to/bams \
   --assembly hg38 \
@@ -104,7 +106,6 @@ nextflow run main.nf \
 ```bash
 nextflow run main.nf \
   -profile docker \
-  --mode wes \
   --panel wes_panel \
   --vcfs_dir /path/to/vcfs \
   --vep_cache "$HOME/.vep"
@@ -115,11 +116,22 @@ nextflow run main.nf \
 ```bash
 nextflow run main.nf \
   -profile docker \
-  --mode mrd \
   --panel mrd \
   --reads_dir /path/to/fastqs \
   --assembly hg38 \
-  --extract_umis \
+  --cpus 16
+```
+
+### 5. B-lymphoid UMI run from FASTQs
+
+```bash
+nextflow run main.nf \
+  -profile docker \
+  --panel b_lymphoid \
+  --reads_dir /path/to/fastqs \
+  --run_id BLY_run_001 \
+  --assembly hg38 \
+  --vep_cache "$HOME/.vep" \
   --cpus 16
 ```
 
@@ -127,8 +139,7 @@ nextflow run main.nf \
 
 ### Required in normal use
 
-- `--mode`: `wes`, `amplicon`, or `mrd`
-- `--panel`: one of `wes_panel`, `lymphom`, `myeloid`, `mrd`
+- `--panel`: one of `wes_panel`, `lymphom`, `myeloid`, `b_lymphoid`, or `mrd`
 - One input directory option: `--reads_dir`, `--bams_dir`, `--vcfs_dir`, or `--bam_vcf_dir`
 
 ### Frequently used
@@ -145,10 +156,10 @@ nextflow run main.nf \
 
 | Parameter | Meaning | Default |
 | --- | --- | --- |
-| `--mincov` | Minimum coverage threshold | Mode-dependent |
-| `--lowcov` | Low coverage threshold for coverage QC | `100` for `wes`; unset for other modes unless provided |
-| `--minvaf` | Minimum variant allele frequency threshold | Mode-dependent |
-| `--minvad` | Minimum variant allele depth threshold | `10` for `wes` and `amplicon`, `3` for `mrd` |
+| `--mincov` | Minimum coverage threshold | Panel-dependent |
+| `--lowcov` | Low coverage threshold for coverage QC | `100` for `wes_panel`; unset for other panels unless provided |
+| `--minvaf` | Minimum variant allele frequency threshold | Panel-dependent |
+| `--minvad` | Minimum variant allele depth threshold | `10` for `wes_panel` and amplicon panels, `30` for `mrd` |
 
 ### Optional behavior switches
 
@@ -156,10 +167,10 @@ nextflow run main.nf \
 | --- | --- |
 | `--skip_covqc` | Skip coverage QC |
 | `--skip_cnv` | Skip CNV analysis |
-| `--skip_indel` | Skip indel calling and indel annotation in `amplicon` mode |
+| `--skip_indel` | Skip indel calling and indel annotation for amplicon panels |
 | `--dedup_mode` | Override alignment deduplication mode |
 | `--skip_trim` | Pass through to alignment step |
-| `--extract_umis` | Enable UMI extraction in `mrd` mode |
+| `--extract_umis` | Control UMI extraction for `b_lymphoid` and `mrd` (default: `true`; use `--extract_umis false` to disable) |
 | `--help` | Print workflow help |
 
 ## Outputs
@@ -181,12 +192,12 @@ varflow.<run_id>.<date>/
 ├── panel_cov_qc.<run_id>/
 ├── panel_cnv_analysis.<run_id>/
 ├── panel_var_annotate.<run_id>/
-├── panel_indel_call.<run_id>/                  # amplicon mode only
-├── panel_var_annotate.indel.<run_id>/          # amplicon mode only
+├── panel_indel_call.<run_id>/                  # amplicon panels only
+├── panel_var_annotate.indel.<run_id>/          # amplicon panels only
 └── varflow_log_file.<run_id>.txt
 ```
 
-The exact set of folders depends on the selected mode, entry point, and skip flags.
+The exact set of folders depends on the selected panel, entry point, and skip flags.
 
 ## Operational Notes
 
@@ -214,7 +225,7 @@ nextflow clean -f
 Before opening a pull request:
 
 1. Run the pipeline on a representative small dataset.
-2. Verify the expected output directories for the chosen mode and input type.
+2. Verify the expected output directories for the chosen panel and input type.
 3. Update [CHANGELOG.md](/mnt/d/GitHub/VarFlow/CHANGELOG.md) if behavior or module versions changed.
 
 ## License

@@ -19,19 +19,25 @@ process ngs_dna_align {
   script:
     // Set default params if not provided
     def dedup_mode
-    def skip_trim
+    def skip_trim = ''
     def extract_umis = ''
     def indel_friendly = ''
-    if (params.mode == 'wes') {
+    if (params.panel == 'wes_panel') {
       dedup_mode = params.dedup_mode ?: 'umi'
       skip_trim = params.skip_trim ?: ''
-    } else if (params.mode == 'amplicon') {
+    } else if (params.panel in ['lymphom', 'myeloid']) {
       dedup_mode = params.dedup_mode ?: 'none'
       skip_trim = params.skip_trim ?: '--skip_trim'
       indel_friendly = '--indel_friendly'
-    } else if (params.mode == 'mrd') {
+    } else if (params.panel == 'b_lymphoid') {
       dedup_mode = params.dedup_mode ?: 'umi'
-      extract_umis = params.extract_umis ? '--extract_umis' : ''
+      extract_umis = (params.extract_umis == null || params.extract_umis) ? '--extract_umis' : ''
+    } else if (params.panel == 'mrd') {
+      dedup_mode = params.dedup_mode ?: 'umi'
+      // MRD libraries use duplex UMIs and indel-friendly alignment by default.
+      // An explicit `--extract_umis false` still allows UMI extraction to be disabled.
+      extract_umis = (params.extract_umis == null || params.extract_umis) ? '--extract_umis' : ''
+      indel_friendly = '--indel_friendly'
     }
     """
     python3 /app/scripts/ngs_dna_align.py \

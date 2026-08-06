@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.1] - 17.07.2026
+### Geändert
+- `--mode` entfernt; `--panel` wählt den Workflow jetzt eindeutig aus.
+- `b_lymphoid` als UMI-basierter Amplicon-Workflow mit SNV- und Indel-Analyse, aber ohne CNV-Analyse ergänzt.
+- MRD-Workflow an den validierten manuellen Ablauf angepasst:
+  - UMI-Extraktion und indel-freundliches Alignment sind standardmäßig aktiv
+  - SNV-Calling verwendet `--no_pre_realign`
+  - Coverage-QC verwendet standardmäßig `mincov=15000`
+  - Annotation verwendet standardmäßig `mincov=6000`, `minvaf=0.2`, `minvad=30` und schließt `weak_evidence` aus
+- Modul-Versionen:
+  - `ngs_dna_align`: 1.0.1
+  - `ngs_snv_call`: 1.0.2
+  - `panel_cov_qc`: 1.0.14
+  - `panel_cnv_analysis`: 1.0.11
+  - `panel_indel_call`: 1.0.3
+  - `panel_var_annotate`: 1.0.8
+
 ## [1.0.0] - 05.08.2025
 ### Hinzugefügt
 - Initiale Version der nextflow pipeline `VarFlow`.
@@ -77,3 +94,25 @@
   - `panel_cnv_analysis`: 1.0.10
   - `panel_indel_call`: 1.0.2
   - `panel_var_annotate`: 1.0.7
+
+## [2.0.0] - 29.06.2026
+### Hinzugefügt
+- Gesamt-validierte Pipeline
+- Modul-Versionen:
+  - `ngs_dna_align`: 1.0.1
+  - `ngs_snv_call`: 1.0.2
+  - `panel_cov_qc`: 1.0.13
+  - `panel_cnv_analysis`: 1.0.11
+  - `panel_indel_call`: 1.0.3
+  - `panel_var_annotate`: 1.0.7
+
+  ## [2.0.1] - 05.08.2026
+### Hinzugefügt
+- MRD und B-Lymphoid panels
+- Modul-Versionen:
+  - `ngs_dna_align`: 1.0.1
+  - `ngs_snv_call`: 1.0.2
+  - `panel_cov_qc`: 1.0.14
+  - `panel_cnv_analysis`: 1.0.11
+  - `panel_indel_call`: 1.0.3
+  - `panel_var_annotate`: 1.0.8

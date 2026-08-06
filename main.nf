@@ -60,12 +60,11 @@ workflow {
     A Nextflow-DSL2 pipeline for DNA-seq alignment, QC, CNV, SNV calling, and annotation.
 
     Usage example WES (on default hg38):
-      nextflow run mvz-hp/VarFlow -r v${VARFLOW_VERSION} --mode wes --panel wes_panel \\
+      nextflow run mvz-hp/VarFlow -r v${VARFLOW_VERSION} --panel wes_panel \\
       --reads_dir FASTQ_folder --run_id WES_run_1 --cpus 16 && nextflow clean -f
 
     Usage:
       nextflow run mvz-hp/VarFlow -r v${VARFLOW_VERSION} \\
-        --mode        <wes|amplicon|mrd> \\
         --panel       <panel_name> \\
         --reads_dir   </path/to/fastq_folder> \\
         --bams_dir    </path/to/bam_folder> \\
@@ -80,41 +79,38 @@ workflow {
         --vep_cache   <path_to_vep_cache> \\
         --skip_covqc  (skip coverage QC) \\
         --skip_cnv    (skip CNV analysis) \\
-        --skip_indel  (skip indel calling and annotation; amplicon mode only) \\
+        --skip_indel  (skip indel calling and annotation; amplicon panels only) \\
         --cpus        <threads_per_process> \\
         && nextflow clean -f
 
     Options:
-      --mode        Analysis mode: wes or amplicon. Required.
-      --panel       Target panel name (e.g. wes_panel). Required.
+      --panel       Target panel: wes_panel, lymphom, myeloid, b_lymphoid, or mrd. Required.
       --reads_dir   Folder containing paired FASTQs (R1/R2). (w/o --bams_dir, --vcfs_dir).
       --bams_dir    Folder containing BAMs. (w/o --reads_dir, --vcfs_dir).
       --vcfs_dir    Folder containing VCFs. (w/o --reads_dir, --bams_dir).
       --bam_vcf_dir Folder containing BAMs and VCFs. (w/o --reads_dir, --reads_dir, --vcfs_dir).
       --run_id      Short tag to identify this run (no spaces). Default: auto-generated.
       --assembly    Reference genome (hg19 OR hg38). Default: hg38.
-      --mincov      Minimum coverage threshold. Default: 200 (wes) / 400 (amplicon).
-      --minvaf      Minimum variant allele frequency. Default: 1.0 (wes) / 1.5 (amplicon).
-      --minvad      Minimum variant allele depth. Default: 10.
+      --mincov      Minimum coverage threshold. MRD defaults: 15000 (QC), 6000 (annotation).
+      --minvaf      Minimum variant allele frequency. MRD default: 0.2.
+      --minvad      Minimum variant allele depth. MRD default: 30.
       --vep_cache   Local VEP cache directory. Default: \$HOME/.vep.
       --skip_covqc  Skip coverage QC.
-      --skip_cnv    Skip CNV analysis.
-      --skip_indel  Skip indel calling and annotation (amplicon mode only).
+      --skip_cnv    Skip CNV analysis (already omitted for b_lymphoid and mrd).
+      --skip_indel  Skip indel calling and annotation (amplicon panels only).
       --cpus        Threads per step. Default: 4.
       --help        Show this help message and exit.
     """
     System.exit(0)
   }
 
-  // Check if a valid mode was specified
-  if( !(params.mode in ['wes', 'amplicon', 'mrd']) ) {
-    error "No valid mode specified. Set --mode wes OR --mode amplicon OR --mode mrd."
+  // Check if panel was specified
+  if( !(params.panel in ['wes_panel', 'lymphom', 'myeloid', 'b_lymphoid', 'mrd']) ) {
+    error "No valid panel specified. Set --panel wes_panel, lymphom, myeloid, b_lymphoid, or mrd."
   }
 
-  // Check if panel was specified
-  if( !(params.panel in ['wes_panel', 'lymphom', 'myeloid', 'mrd']) ) {
-    error "No panel specified. Set --panel <panel_name>."
-  }
+  def isAmplicon = params.panel in ['lymphom', 'myeloid', 'b_lymphoid']
+  def isCnvPanel = params.panel in ['wes_panel', 'lymphom', 'myeloid']
 
   // Ensure only one of the input directory options is specified
   def dir_params = [params.reads_dir, params.bams_dir, params.vcfs_dir, params.bam_vcf_dir].findAll { d -> d }
@@ -176,8 +172,8 @@ workflow {
   publish_dir_ch = publish_dir_file_ch.map { f -> f.text.trim() }
   run_meta_ch = run_id_ch.combine(publish_dir_ch)
 
-  // Prepare channels for the four entry modes
-  // Input: FASTQs -> Align -> BAMs -> SNVs -> Annot + QC (+ CNV only for wes/amplicon)
+  // Prepare channels for the four input entry points
+  // Input: FASTQs -> Align -> BAMs -> SNVs -> Annot + QC (+ CNV for supported panels)
   if( params.reads_dir ) {
     reads_ch = channel.value( chosenFolder )
     // Pair each input with run metadata
@@ -188,13 +184,13 @@ workflow {
     // Call SNVs
     snv_ch = ngs_snv_call(bam_plus_id)
     snv_plus_id = snv_ch.combine(run_meta_ch).map { snv_dir, run_id, publish_dir -> tuple(snv_dir, run_id, publish_dir) }
-    // QC+Annot (+ CNV only for wes/amplicon)
+    // QC+Annot (+ CNV for supported panels)
     if( !params.skip_covqc ) {
       cov_plus_assignment_ch = bam_plus_id.combine(panel_assignment_files_ch).map { values -> addPanelAssignmentFiles(values) }
       cov_out = panel_cov_qc(cov_plus_assignment_ch)
     }
     ann_out = panel_var_annotate(snv_plus_id)
-    if( params.mode != 'mrd' && !params.skip_cnv ) {
+    if( isCnvPanel && !params.skip_cnv ) {
       cnv_out = panel_cnv_analysis(bam_plus_id)
     }
     // ----- barrier that fires *after* cov + cnv + ann are done -----
@@ -204,14 +200,14 @@ workflow {
     if( !params.skip_covqc ) {
       barrier_builder = barrier_builder.mix( cov_out.map{ true } )
     }
-    if( params.mode != 'mrd' && !params.skip_cnv ) {
+    if( isCnvPanel && !params.skip_cnv ) {
       barrier_builder = barrier_builder.mix( cnv_out.map{ true } )
     }
     def barrier = barrier_builder
                   .collect()            // waits for all expected tokens
                   .map{ 'ready' }       // single value for gating
-    // Indels only in amplicon mode
-    if( params.mode == 'amplicon' && !params.skip_indel ) {
+    // Indels only for amplicon panels
+    if( isAmplicon && !params.skip_indel ) {
       // Gate indel calling on the barrier
       indel_in = bam_plus_id.combine(barrier).map { align_dir, run_id, publish_dir, ready -> tuple(align_dir, run_id, publish_dir, ready) }
       indel_ch = panel_indel_call(indel_in)
@@ -219,20 +215,20 @@ workflow {
       panel_var_annotate_indel(indel_plus_id)
     }
   }
-  // Input: BAMs -> SNVs -> Annot + QC (+ CNV only for wes/amplicon)
+  // Input: BAMs -> SNVs -> Annot + QC (+ CNV for supported panels)
   else if( params.bams_dir ) {
     bam_ch = channel.value( chosenFolder )
     bam_plus_id = bam_ch.combine(run_meta_ch).map { align_dir, run_id, publish_dir -> tuple(align_dir, run_id, publish_dir) }
     // Call SNVs
     snv_ch = ngs_snv_call(bam_plus_id)
     snv_plus_id = snv_ch.combine(run_meta_ch).map { snv_dir, run_id, publish_dir -> tuple(snv_dir, run_id, publish_dir) }
-    // QC+Annot (+ CNV only for wes/amplicon)
+    // QC+Annot (+ CNV for supported panels)
     if( !params.skip_covqc ) {
       cov_plus_assignment_ch = bam_plus_id.combine(panel_assignment_files_ch).map { values -> addPanelAssignmentFiles(values) }
       cov_out = panel_cov_qc(cov_plus_assignment_ch)
     }
     ann_out = panel_var_annotate(snv_plus_id)
-    if( params.mode != 'mrd' && !params.skip_cnv ) {
+    if( isCnvPanel && !params.skip_cnv ) {
       cnv_out = panel_cnv_analysis(bam_plus_id)
     }
     // ----- barrier that fires *after* cov + cnv + ann are done -----
@@ -242,14 +238,14 @@ workflow {
     if( !params.skip_covqc ) {
       barrier_builder = barrier_builder.mix( cov_out.map{ true } )
     }
-    if( params.mode != 'mrd' && !params.skip_cnv ) {
+    if( isCnvPanel && !params.skip_cnv ) {
       barrier_builder = barrier_builder.mix( cnv_out.map{ true } )
     }
     def barrier = barrier_builder
                   .collect()            // waits for all expected tokens
                   .map{ 'ready' }       // single value for gating
-    // Indels only in amplicon mode
-    if( params.mode == 'amplicon' && !params.skip_indel ) {
+    // Indels only for amplicon panels
+    if( isAmplicon && !params.skip_indel ) {
       // Gate indel calling on the barrier
       indel_in = bam_plus_id.combine(barrier).map { align_dir, run_id, publish_dir, ready -> tuple(align_dir, run_id, publish_dir, ready) }
       indel_ch = panel_indel_call(indel_in)
@@ -267,13 +263,13 @@ workflow {
   else if( params.bam_vcf_dir ) {
     both_ch = channel.value( chosenFolder )
     both_plus_id_ch = both_ch.combine(run_meta_ch).map { both_dir, run_id, publish_dir -> tuple(both_dir, run_id, publish_dir) }
-    // QC+Annot (+ CNV only for wes/amplicon)
+    // QC+Annot (+ CNV for supported panels)
     if( !params.skip_covqc ) {
       cov_plus_assignment_ch = both_plus_id_ch.combine(panel_assignment_files_ch).map { values -> addPanelAssignmentFiles(values) }
       cov_out = panel_cov_qc(cov_plus_assignment_ch)
     }
     ann_out = panel_var_annotate(both_plus_id_ch)
-    if( params.mode != 'mrd' && !params.skip_cnv ) {
+    if( isCnvPanel && !params.skip_cnv ) {
       cnv_out = panel_cnv_analysis(both_plus_id_ch)
     }
     // ----- barrier that fires *after* cov + cnv + ann are done -----
@@ -283,14 +279,14 @@ workflow {
     if( !params.skip_covqc ) {
       barrier_builder = barrier_builder.mix( cov_out.map{ true } )
     }
-    if( params.mode != 'mrd' && !params.skip_cnv ) {
+    if( isCnvPanel && !params.skip_cnv ) {
       barrier_builder = barrier_builder.mix( cnv_out.map{ true } )
     }
     def barrier = barrier_builder
                   .collect()            // waits for all expected tokens
                   .map{ 'ready' }       // single value for gating
-    // Indels only in amplicon mode
-    if( params.mode == 'amplicon' && !params.skip_indel ) {
+    // Indels only for amplicon panels
+    if( isAmplicon && !params.skip_indel ) {
       // Gate indel calling on the barrier
       indel_in = both_plus_id_ch.combine(barrier).map { both_dir, run_id, publish_dir, ready -> tuple(both_dir, run_id, publish_dir, ready) }
       indel_ch = panel_indel_call(indel_in)
@@ -311,10 +307,10 @@ workflow {
     Modules: [
       ngs_dna_align        : '1.0.1',
       ngs_snv_call         : '1.0.2',
-      panel_cov_qc         : '1.0.13',
+      panel_cov_qc         : '1.0.14',
       panel_cnv_analysis   : '1.0.11',
       panel_indel_call     : '1.0.3',
-      panel_var_annotate   : '1.0.7'
+      panel_var_annotate   : '1.0.8'
     ],
 
     //Params: params

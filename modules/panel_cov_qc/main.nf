@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 
 process panel_cov_qc {
   tag "${run_id}"
-  container 'ghcr.io/mvz-hp/panel_cov_qc:1.0.13'
+  container 'ghcr.io/mvz-hp/panel_cov_qc:1.0.14'
   containerOptions '--entrypoint ""'
   cpus params.cpus
 
@@ -21,14 +21,14 @@ process panel_cov_qc {
     // Set default params if not provided
     def mincov
     def lowcov
-    if (params.mode == 'wes') {
+    if (params.panel == 'wes_panel') {
       mincov = params.mincov ?: 200
       lowcov = params.lowcov ?: 100
-    } else if (params.mode == 'amplicon') {
+    } else if (params.panel in ['lymphom', 'myeloid', 'b_lymphoid']) {
       mincov = params.mincov ?: 400
       lowcov = params.lowcov
-    } else if (params.mode == 'mrd') {
-      mincov = params.mincov ?: 10000
+    } else if (params.panel == 'mrd') {
+      mincov = params.mincov ?: 15000
       lowcov = params.lowcov
     }
     // Only include lowcov argument if it's set

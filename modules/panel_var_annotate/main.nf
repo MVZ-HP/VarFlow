@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 
 process panel_var_annotate {
   tag "${run_id}"
-  container 'ghcr.io/mvz-hp/panel_var_annotate:1.0.7'
+  container 'ghcr.io/mvz-hp/panel_var_annotate:1.0.8'
   containerOptions "--entrypoint \"\" --volume ${params.vep_cache}:/vep"
   cpus params.cpus
 
@@ -21,19 +21,20 @@ process panel_var_annotate {
     def mincov
     def minvaf
     def minvad
-    if (params.mode == 'wes') {
+    if (params.panel == 'wes_panel') {
       mincov = params.mincov ?: 200
       minvaf = params.minvaf ?: 1.0
       minvad = params.minvad ?: 10
-    } else if (params.mode == 'amplicon') {
+    } else if (params.panel in ['lymphom', 'myeloid', 'b_lymphoid']) {
       mincov = params.mincov ?: 400
       minvaf = params.minvaf ?: 1.5
       minvad = params.minvad ?: 10
-    } else if (params.mode == 'mrd') {
-      mincov = params.mincov ?: 5000
-      minvaf = params.minvaf ?: 0.1
-      minvad = params.minvad ?: 3
+    } else if (params.panel == 'mrd') {
+      mincov = params.mincov ?: 6000
+      minvaf = params.minvaf ?: 0.2
+      minvad = params.minvad ?: 30
     }
+    def filter_exclude = params.panel == 'mrd' ? '--filter_exclude weak_evidence' : ''
 
     """
     python3 /app/scripts/panel_var_annotate.py \
@@ -45,6 +46,7 @@ process panel_var_annotate {
       -r ${minvad} \
       -d /vep \
       -c ${task.cpus} \
+      ${filter_exclude} \
       --run_id ${run_id} \
       --no_date \
       -o \$PWD

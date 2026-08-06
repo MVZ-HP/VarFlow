@@ -17,12 +17,15 @@ process ngs_snv_call {
     path("ngs_snv_call.${run_id}")
 
   script:
+    def no_pre_realign = params.panel == 'mrd' ? '--no_pre_realign' : ''
+
     """
     python3 /app/scripts/ngs_snv_call.py \
       -b ${align_dir} \
       -a ${params.assembly} \
       -p ${params.panel} \
       -c ${task.cpus} \
+      ${no_pre_realign} \
       --run_id ${run_id} \
       --no_date \
       -o \$PWD
