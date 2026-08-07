@@ -24,7 +24,7 @@ process panel_cov_qc {
     if (params.panel == 'wes_panel') {
       mincov = params.mincov ?: 200
       lowcov = params.lowcov ?: 100
-    } else if (params.panel in ['lymphom', 'myeloid', 'b_lymphoid']) {
+    } else if (params.panel in ['lymphom', 'myeloid', 'b_lymphoid', 't_lymphoid']) {
       mincov = params.mincov ?: 400
       lowcov = params.lowcov
     } else if (params.panel == 'mrd') {

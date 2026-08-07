@@ -84,7 +84,7 @@ workflow {
         && nextflow clean -f
 
     Options:
-      --panel       Target panel: wes_panel, lymphom, myeloid, b_lymphoid, or mrd. Required.
+      --panel       Target panel: wes_panel, lymphom, myeloid, b_lymphoid, t_lymphoid, or mrd. Required.
       --reads_dir   Folder containing paired FASTQs (R1/R2). (w/o --bams_dir, --vcfs_dir).
       --bams_dir    Folder containing BAMs. (w/o --reads_dir, --vcfs_dir).
       --vcfs_dir    Folder containing VCFs. (w/o --reads_dir, --bams_dir).
@@ -96,7 +96,7 @@ workflow {
       --minvad      Minimum variant allele depth. MRD default: 30.
       --vep_cache   Local VEP cache directory. Default: \$HOME/.vep.
       --skip_covqc  Skip coverage QC.
-      --skip_cnv    Skip CNV analysis (already omitted for b_lymphoid and mrd).
+      --skip_cnv    Skip CNV analysis (already omitted for b_lymphoid, t_lymphoid, and mrd).
       --skip_indel  Skip indel calling and annotation (amplicon panels only).
       --cpus        Threads per step. Default: 4.
       --help        Show this help message and exit.
@@ -105,11 +105,11 @@ workflow {
   }
 
   // Check if panel was specified
-  if( !(params.panel in ['wes_panel', 'lymphom', 'myeloid', 'b_lymphoid', 'mrd']) ) {
-    error "No valid panel specified. Set --panel wes_panel, lymphom, myeloid, b_lymphoid, or mrd."
+  if( !(params.panel in ['wes_panel', 'lymphom', 'myeloid', 'b_lymphoid', 't_lymphoid', 'mrd']) ) {
+    error "No valid panel specified. Set --panel wes_panel, lymphom, myeloid, b_lymphoid, t_lymphoid, or mrd."
   }
 
-  def isAmplicon = params.panel in ['lymphom', 'myeloid', 'b_lymphoid']
+  def isAmplicon = params.panel in ['lymphom', 'myeloid', 'b_lymphoid', 't_lymphoid']
   def isCnvPanel = params.panel in ['wes_panel', 'lymphom', 'myeloid']
 
   // Ensure only one of the input directory options is specified

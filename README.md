@@ -24,14 +24,14 @@ The selected panel determines the complete analysis workflow; a separate mode pa
 | --- | --- | ---: | ---: | ---: | --- |
 | `wes_panel` | Whole-exome / hybrid capture | 200 | 1.0 | 10 | CNV enabled by default |
 | `lymphom`, `myeloid` | Amplicon sequencing | 400 | 1.5 | 10 | Indel calling enabled unless `--skip_indel` is set |
-| `b_lymphoid` | UMI-based amplicon sequencing | 400 | 1.5 | 10 | UMI extraction and indel calling enabled; CNV skipped |
+| `b_lymphoid`, `t_lymphoid` | UMI-based amplicon sequencing | 400 | 1.5 | 10 | UMI extraction and indel calling enabled; CNV skipped |
 | `mrd` | MRD processing | 15000 for coverage QC, 6000 for annotation | 0.2 | 30 | CNV is skipped automatically |
 
 Additional panel-dependent behavior in alignment:
 
 - `wes_panel`: defaults to `dedup_mode=umi`
 - `lymphom` and `myeloid`: default to `dedup_mode=none` and skip trimming unless overridden
-- `b_lymphoid`: defaults to `dedup_mode=umi` and UMI extraction; UMI extraction can be disabled with `--extract_umis false`
+- `b_lymphoid` and `t_lymphoid`: default to `dedup_mode=umi` and UMI extraction; UMI extraction can be disabled with `--extract_umis false`
 - `mrd`: defaults to `dedup_mode=umi`, UMI extraction, and indel-friendly alignment; UMI extraction can be disabled with `--extract_umis false`
 
 MRD SNV calling disables pre-realignment. MRD annotation excludes `weak_evidence` calls by default.
@@ -122,7 +122,7 @@ nextflow run main.nf \
   --cpus 16
 ```
 
-### 5. B-lymphoid UMI run from FASTQs
+### 5. B-/T-lymphoid UMI run from FASTQs
 
 ```bash
 nextflow run main.nf \
@@ -135,11 +135,13 @@ nextflow run main.nf \
   --cpus 16
 ```
 
+Use `--panel t_lymphoid` for the sister T-lymphoid workflow.
+
 ## Parameters
 
 ### Required in normal use
 
-- `--panel`: one of `wes_panel`, `lymphom`, `myeloid`, `b_lymphoid`, or `mrd`
+- `--panel`: one of `wes_panel`, `lymphom`, `myeloid`, `b_lymphoid`, `t_lymphoid`, or `mrd`
 - One input directory option: `--reads_dir`, `--bams_dir`, `--vcfs_dir`, or `--bam_vcf_dir`
 
 ### Frequently used
@@ -170,7 +172,7 @@ nextflow run main.nf \
 | `--skip_indel` | Skip indel calling and indel annotation for amplicon panels |
 | `--dedup_mode` | Override alignment deduplication mode |
 | `--skip_trim` | Pass through to alignment step |
-| `--extract_umis` | Control UMI extraction for `b_lymphoid` and `mrd` (default: `true`; use `--extract_umis false` to disable) |
+| `--extract_umis` | Control UMI extraction for `b_lymphoid`, `t_lymphoid`, and `mrd` (default: `true`; use `--extract_umis false` to disable) |
 | `--help` | Print workflow help |
 
 ## Outputs

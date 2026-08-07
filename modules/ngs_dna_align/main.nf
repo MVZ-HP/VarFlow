@@ -29,7 +29,7 @@ process ngs_dna_align {
       dedup_mode = params.dedup_mode ?: 'none'
       skip_trim = params.skip_trim ?: '--skip_trim'
       indel_friendly = '--indel_friendly'
-    } else if (params.panel == 'b_lymphoid') {
+    } else if (params.panel in ['b_lymphoid', 't_lymphoid']) {
       dedup_mode = params.dedup_mode ?: 'umi'
       extract_umis = (params.extract_umis == null || params.extract_umis) ? '--extract_umis' : ''
     } else if (params.panel == 'mrd') {

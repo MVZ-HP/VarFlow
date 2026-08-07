@@ -25,7 +25,7 @@ process panel_var_annotate {
       mincov = params.mincov ?: 200
       minvaf = params.minvaf ?: 1.0
       minvad = params.minvad ?: 10
-    } else if (params.panel in ['lymphom', 'myeloid', 'b_lymphoid']) {
+    } else if (params.panel in ['lymphom', 'myeloid', 'b_lymphoid', 't_lymphoid']) {
       mincov = params.mincov ?: 400
       minvaf = params.minvaf ?: 1.5
       minvad = params.minvad ?: 10

@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Hinzugefügt
+- `t_lymphoid` als Schwester-Workflow von `b_lymphoid`: UMI-basierte SNV- und Indel-Analyse ohne CNV-Analyse.
+
 ## [2.0.1] - 17.07.2026
 ### Geändert
 - `--mode` entfernt; `--panel` wählt den Workflow jetzt eindeutig aus.
