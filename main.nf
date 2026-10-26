@@ -305,13 +305,13 @@ workflow {
     Pipeline: [
       VarFlow_version  : VARFLOW_VERSION,
       Nextflow_version : workflow.nextflow.version,
-      Date_time        : "${params.date} ${new Date().format('HH:mm:ss')}"
+      Date_time        : "${params.date} ${java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern('HH:mm:ss'))}"
     ],
 
     Modules: [
       ngs_dna_align        : '1.0.1',
       ngs_snv_call         : '1.0.1',
-      panel_cov_qc         : '1.0.13',
+      panel_cov_qc         : '1.0.14',
       panel_cnv_analysis   : '1.0.10',
       panel_indel_call     : '1.0.2',
       panel_var_annotate   : '1.0.8'

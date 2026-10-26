@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 
 process panel_cov_qc {
   tag "${run_id}"
-  container 'ghcr.io/mvz-hp/panel_cov_qc:1.0.13'
+  container 'ghcr.io/mvz-hp/panel_cov_qc:1.0.14'
   containerOptions '--entrypoint ""'
   cpus params.cpus
 

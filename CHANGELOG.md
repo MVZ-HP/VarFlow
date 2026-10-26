@@ -88,3 +88,15 @@
   - `panel_cnv_analysis`: 1.0.10
   - `panel_indel_call`: 1.0.2
   - `panel_var_annotate`: 1.0.8
+
+## [1.0.7] - 26.10.2026
+### Geändert
+- Coverage-QC-Modul `panel_cov_qc` auf v1.0.14 aktualisiert.
+- Datums- und Zeitformatierung sowie Zufallszahlenerzeugung der Standard-Run-ID für den strikten Nextflow-Parser angepasst.
+- Modul-Versionen:
+  - `ngs_dna_align`: 1.0.1
+  - `ngs_snv_call`: 1.0.1
+  - `panel_cov_qc`: 1.0.14
+  - `panel_cnv_analysis`: 1.0.10
+  - `panel_indel_call`: 1.0.2
+  - `panel_var_annotate`: 1.0.8
