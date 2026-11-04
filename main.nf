@@ -314,7 +314,7 @@ workflow {
       panel_cov_qc         : '1.0.14',
       panel_cnv_analysis   : '1.0.10',
       panel_indel_call     : '1.0.2',
-      panel_var_annotate   : '1.0.8'
+      panel_var_annotate   : '1.0.9'
     ],
 
     //Params: params

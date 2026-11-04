@@ -100,3 +100,14 @@
   - `panel_cnv_analysis`: 1.0.10
   - `panel_indel_call`: 1.0.2
   - `panel_var_annotate`: 1.0.8
+
+## [1.0.8] - 04.11.2026
+### Geändert
+- Annotation-Modul `panel_var_annotate` für SNV- und Indel-Annotation in der gesamten Pipeline auf v1.0.9 aktualisiert.
+- Modul-Versionen:
+  - `ngs_dna_align`: 1.0.1
+  - `ngs_snv_call`: 1.0.1
+  - `panel_cov_qc`: 1.0.14
+  - `panel_cnv_analysis`: 1.0.10
+  - `panel_indel_call`: 1.0.2
+  - `panel_var_annotate`: 1.0.9
