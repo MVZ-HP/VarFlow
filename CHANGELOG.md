@@ -102,6 +102,8 @@
   - `panel_var_annotate`: 1.0.8
 
 ## [1.0.8] - 04.11.2026
+### Behoben
+- SNV- und Indel-Annotation verwenden den installierten CLI-Befehl `panel-var-annotate` statt des in Container v1.0.9 nicht mehr vorhandenen Skripts `/app/scripts/panel_var_annotate.py`.
 ### Geändert
 - Annotation-Modul `panel_var_annotate` für SNV- und Indel-Annotation in der gesamten Pipeline auf v1.0.9 aktualisiert.
 - Modul-Versionen:

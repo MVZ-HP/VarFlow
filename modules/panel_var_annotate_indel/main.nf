@@ -23,7 +23,7 @@ process panel_var_annotate_indel {
     def minvad = params.minvad ?: 10
 
     """
-    python3 /app/scripts/panel_var_annotate.py \
+    panel-var-annotate \
       -i ${snv_dir} \
       -a ${params.assembly} \
       -p ${params.panel} \
