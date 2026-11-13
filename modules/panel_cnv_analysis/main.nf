@@ -7,7 +7,7 @@ process panel_cnv_analysis {
   containerOptions '--entrypoint ""'
   cpus params.cpus
 
-  publishDir "${publish_dir}", mode: 'copy', overwrite: true
+  publishDir path: { publish_dir }, mode: 'copy', overwrite: true
 
   input:
     tuple path(align_dir), val(run_id), val(publish_dir)

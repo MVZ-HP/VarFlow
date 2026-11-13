@@ -7,7 +7,7 @@ process panel_indel_call {
   containerOptions '--entrypoint ""'
   cpus params.cpus
 
-  publishDir "${publish_dir}", mode: 'copy', overwrite: true
+  publishDir path: { publish_dir }, mode: 'copy', overwrite: true
 
   input:
     tuple path(align_dir), val(run_id), val(publish_dir), val(_ready)  // _ready is the barrier token

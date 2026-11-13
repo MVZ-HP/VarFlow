@@ -5,7 +5,7 @@ process write_log_file {
   tag "${run_id}"
   cpus 1
 
-  publishDir "${publish_dir}", mode: 'copy', overwrite: true
+  publishDir path: { publish_dir }, mode: 'copy', overwrite: true
 
   input:
     tuple val(log_info), val(run_id), val(publish_dir)

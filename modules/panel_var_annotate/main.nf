@@ -7,7 +7,7 @@ process panel_var_annotate {
   containerOptions "--entrypoint \"\" --volume ${params.vep_cache}:/vep"
   cpus params.cpus
 
-  publishDir "${publish_dir}", mode: 'copy', overwrite: true
+  publishDir path: { publish_dir }, mode: 'copy', overwrite: true
 
   input:
     tuple path(snv_dir), val(run_id), val(publish_dir)

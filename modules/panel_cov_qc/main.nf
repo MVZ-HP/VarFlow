@@ -7,7 +7,7 @@ process panel_cov_qc {
   containerOptions '--entrypoint ""'
   cpus params.cpus
 
-  publishDir "${publish_dir}", mode: 'copy', overwrite: true
+  publishDir path: { publish_dir }, mode: 'copy', overwrite: true
 
   input:
     // Staged beside align_dir so panel_cov_qc.py can find the Lauf assignment TSV in parent directories.
